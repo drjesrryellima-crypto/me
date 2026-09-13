@@ -22,9 +22,12 @@ async function getClient() {
   return sheetsClient;
 }
 
-// Grava/atualiza uma linha por lead. Implementação simples: sempre adiciona
-// uma nova linha de log (histórico completo). Se preferir "1 linha por lead
-// que se atualiza", dá pra evoluir depois buscando a linha pelo telefone.
+// Grava/atualiza uma linha por lead. Como isso é chamado a cada mensagem
+// recebida (ver flow.js), sempre adicionar uma linha nova faria a planilha
+// virar um log da conversa inteira, com várias linhas por lead. Em vez
+// disso, procura o telefone na coluna A: se já existe uma linha pra esse
+// lead, atualiza ela; senão, adiciona uma linha nova. Resultado: 1 linha
+// por lead, sempre com os dados mais recentes.
 async function appendLeadRow(lead) {
   const client = await getClient();
   if (!client || !SHEET_ID) return;
@@ -39,12 +42,29 @@ async function appendLeadRow(lead) {
     new Date().toISOString(),
   ];
 
-  await client.spreadsheets.values.append({
+  const { data } = await client.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${TAB}!A:G`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [row] },
+    range: `${TAB}!A:A`,
   });
+  const phones = data.values || [];
+  const existingRowIndex = phones.findIndex((r) => r[0] === lead.phone);
+
+  if (existingRowIndex >= 0) {
+    const rowNumber = existingRowIndex + 1; // 1-based, mesma linha do telefone encontrado
+    await client.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${TAB}!A${rowNumber}:G${rowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [row] },
+    });
+  } else {
+    await client.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: `${TAB}!A:G`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [row] },
+    });
+  }
 }
 
 module.exports = { appendLeadRow };
