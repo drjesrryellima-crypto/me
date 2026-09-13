@@ -8,18 +8,44 @@ const normalize = (text) =>
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .replace(/[.,!?;:]/g, ' ') // pontua\u00e7\u00e3o n\u00e3o deve impedir o match
+    .replace(/\s+/g, ' ') // colapsa espa\u00e7os repetidos
     .trim();
 
 const CRISIS_PHRASES = [
   'quero morrer',
+  'quero morre',
   'nao aguento mais viver',
+  'nao aguento mais essa vida',
+  'nao aguento mais',
+  'cansei de viver',
   'pensando em me matar',
+  'penso em me matar',
+  'pensei em me matar',
   'vou me matar',
+  'quero me matar',
+  'quero me suicidar',
+  'penso em me suicidar',
+  'cometer suicidio',
   'me machucar',
   'me cortar',
+  'me cortando',
+  'automutilacao',
   'tirar minha vida',
+  'acabar com a minha vida',
+  'acabar com a propria vida',
+  'vou acabar com tudo',
+  'quero acabar com tudo',
   'nao quero mais existir',
+  'melhor eu nao existir',
+  'seria melhor eu nao existir',
+  'quero sumir',
+  'quero desaparecer',
   'sem saida',
+  'nao vejo saida',
+  'nao tem mais saida',
+  'vida nao tem mais sentido',
+  'nao vale a pena viver',
   'penso em suicidio',
   'quero desistir de tudo',
 ];
@@ -27,19 +53,28 @@ const CRISIS_PHRASES = [
 const BUYING_PHRASES = [
   // valor / pagamento
   'quanto custa',
+  'quanto ta custando',
+  'quanto fica',
   'qual o valor',
+  'qual valor',
+  'me passa o valor',
   'quanto e',
   'tem desconto',
   'em quantas vezes',
+  'tem como parcelar',
   'parcelar',
+  'aceita pix',
   'pix',
   'cartao',
   // agendamento / inicio
   'quero marcar',
+  'quero agendar',
+  'gostaria de agendar',
   'pode marcar',
   'tem vaga',
   'quando posso comecar',
   'como faco pra comecar',
+  'quero comecar hoje',
   'vamos marcar',
   'e hoje que da pra comecar',
   // confirmacao direta
@@ -50,6 +85,8 @@ const BUYING_PHRASES = [
   'eu topo',
   'fechado',
   'aceito',
+  'vamos nessa',
+  'sim, quero',
   'onde eu assino',
   // logistica de quem ja decidiu
   'qual o endereco',
