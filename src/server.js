@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const express = require('express');
 const { handleIncomingMessage } = require('./flow');
 const { iniciarAgendador } = require('./followup');
@@ -8,6 +9,23 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
+
+function checkGoogleSheetsSetup() {
+  const credsPath = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!credsPath || !fs.existsSync(credsPath)) {
+    console.warn(
+      '[sheets] ⚠️  credentials/service-account.json não encontrado — gravação no Google Sheets desativada ' +
+        '(leads continuam sendo salvos em data/leads.json). Siga a seção 3 do README para configurar.'
+    );
+    return;
+  }
+  if (!process.env.GOOGLE_SHEET_ID) {
+    console.warn(
+      '[sheets] ⚠️  GOOGLE_SHEET_ID não definido no .env — gravação no Google Sheets desativada. ' +
+        'Siga a seção 3 do README para configurar.'
+    );
+  }
+}
 
 // 1) Verificação do webhook (a Meta chama isso uma vez, ao configurar)
 app.get('/webhook', (req, res) => {
@@ -51,5 +69,6 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
   console.log(`Webhook: http://localhost:${PORT}/webhook`);
+  checkGoogleSheetsSetup();
   iniciarAgendador();
 });
