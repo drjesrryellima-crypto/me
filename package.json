@@ -1,0 +1,18 @@
+{
+  "name": "whatsapp-flow-mvp",
+  "version": "1.0.0",
+  "description": "Fluxo automatizado de atendimento WhatsApp - Programas Recomeco e Constancia",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "axios": "^1.7.7",
+    "googleapis": "^140.0.1",
+    "node-cron": "^3.0.3"
+  }
+}
