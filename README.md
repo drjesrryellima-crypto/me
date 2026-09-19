@@ -15,6 +15,7 @@ briefing técnico. Testado localmente end-to-end (webhook → qualificação →
 - Registro de cada lead em arquivo local (`data/leads.json`) + integração com Google Sheets
 - Agendador dos follow-ups D+2, D+3, D+5, D+7
 - Alerta de handoff (log no console + webhook opcional, ex: Slack/Zapier)
+- **Dashboard de leads** (`/dashboard`): funil de qualificação, leads por dia, classificação, alerta de risco e a lista completa com busca e filtros
 
 ## O que você precisa fazer antes de rodar de verdade
 
@@ -50,7 +51,20 @@ Isso te dá uma URL tipo `https://algumacoisa.ngrok-free.app`. Use `https://algu
 4. Compartilhe a planilha com o e-mail da service account (está dentro do JSON, campo `client_email`) com permissão de **Editor**.
 5. Pegue o ID da planilha (fica na URL, entre `/d/` e `/edit`) e coloque em `GOOGLE_SHEET_ID` no `.env`.
 
-### 4. Instalar e rodar
+### 4. Definir a senha do dashboard
+
+O painel de leads mostra telefone e o motivo que cada pessoa contou — dado sensível
+de saúde. Como o ngrok deixa essa URL pública, o dashboard **só sobe se você definir
+uma senha**. No `.env`:
+
+```
+DASHBOARD_TOKEN=uma-senha-longa-e-aleatoria-que-so-voce-sabe
+```
+
+Sem isso, `/dashboard` responde 503 e o resto do sistema (webhook, follow-ups)
+continua funcionando normalmente.
+
+### 5. Instalar e rodar
 
 ```bash
 npm install
@@ -61,7 +75,7 @@ npm start
 
 Em outro terminal, rode o `ngrok http 3000` e cadastre a URL na Meta (passo 2).
 
-### 5. Testar sem gastar mensagem de verdade
+### 6. Testar sem gastar mensagem de verdade
 
 Você pode simular uma mensagem chegando, sem depender do WhatsApp real, com:
 
@@ -75,6 +89,39 @@ curl -X POST http://localhost:3000/webhook \
 ```
 
 Veja o estado do lead em `data/leads.json` e os logs no terminal.
+
+---
+
+## Dashboard de leads
+
+Com o servidor rodando, abra:
+
+```
+http://localhost:3000/dashboard?token=SUA_SENHA
+```
+
+(a mesma senha que você colocou em `DASHBOARD_TOKEN`)
+
+O que tem lá:
+
+- **Alerta de risco/crise** no topo — quem foi marcado com `RISCO/CRISE` aparece
+  primeiro, em vermelho, porque é o caso que não pode esperar
+- **Indicadores**: total de leads, quantos estão em qualificação, quantos receberam
+  o catálogo, quantos estão parados em handoff e a taxa de handoff
+- **Funil de qualificação**: quantos leads chegaram a cada etapa da conversa
+- **Onde os leads estão agora**: o estado atual de cada um
+- **Leads novos por dia** nos últimos 14 dias
+- **Classificação**: Recomeço x Constância
+- **Tabela completa** com busca por telefone/nome/motivo e filtros por estado,
+  classificação e risco
+
+Os dados vêm do mesmo `data/leads.json` que o fluxo já grava — o dashboard só lê,
+nunca escreve. A página se atualiza sozinha a cada 60 segundos.
+
+**Sobre segurança:** o token é a única barreira, e ele viaja na URL. Se você for
+deixar isso exposto por muito tempo num endereço público, o próximo passo é botar
+um login de verdade na frente (ou não expor o `/dashboard` pra internet, acessando
+só pelo `localhost` da máquina onde o servidor roda).
 
 ---
 
@@ -96,4 +143,5 @@ vai precisar:
 - [ ] Testar a lista de frases de intenção de compra com o vocabulário real dos seus leads
 - [ ] Configurar `HANDOFF_ALERT_WEBHOOK_URL` pra você receber o alerta de handoff de verdade (não só no log do terminal)
 - [ ] Decidir se vai continuar rodando localmente (computador sempre ligado) ou migrar pra um servidor/VPS
+- [ ] Definir um `DASHBOARD_TOKEN` forte (o painel expõe telefone e motivo de cada lead)
 - [ ] Rodar os testes do checklist de aceite do briefing técnico antes do go-live real

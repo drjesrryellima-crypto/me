@@ -3,9 +3,13 @@ const fs = require('fs');
 const express = require('express');
 const { handleIncomingMessage } = require('./flow');
 const { iniciarAgendador } = require('./followup');
+const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
 
 const app = express();
 app.use(express.json());
+
+// Painel de leads (/dashboard + /api/leads) — protegido por DASHBOARD_TOKEN
+app.use(criarRouter());
 
 const PORT = process.env.PORT || 3000;
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
@@ -69,6 +73,8 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
   console.log(`Webhook: http://localhost:${PORT}/webhook`);
+  console.log(`Dashboard: http://localhost:${PORT}/dashboard?token=...`);
   checkGoogleSheetsSetup();
+  avisarSeDesprotegido();
   iniciarAgendador();
 });
