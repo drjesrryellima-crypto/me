@@ -10,7 +10,8 @@
     "test": "node --test test/*.test.js",
     "testar-planilha": "node scripts/testar-planilha.js",
     "listar-abas": "node scripts/listar-abas.js",
-    "conversar": "node scripts/conversar.js"
+    "conversar": "node scripts/conversar.js",
+    "testar-whatsapp": "node scripts/testar-whatsapp.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

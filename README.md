@@ -134,7 +134,33 @@ que acontecem de verdade:
 
 Apague a linha de teste depois. Ela não atrapalha nada, mas polui.
 
-### 6. Instalar e rodar
+### 6. Testar o envio pelo WhatsApp, isolado
+
+Antes de webhook, ngrok e servidor no ar — o programa consegue falar com a
+Meta e entregar mensagem?
+
+```bash
+npm run testar-whatsapp 5584999999999
+```
+
+Manda uma mensagem só, para o número informado (com DDI e DDD, só números).
+
+Enquanto o app está em modo de teste, a Meta só entrega para números
+cadastrados como destinatários de teste no painel — e, fora do modo de teste,
+só para quem te mandou mensagem nas últimas 24h. Não é limitação do projeto.
+
+Quando falha, o script desempacota o erro da Meta (que vem dentro do corpo da
+resposta, não no status HTTP) e traduz os códigos que mais aparecem:
+
+| Código | O que é |
+|---|---|
+| 190 | Token expirado — os temporários duram 24h |
+| 131030 | Número de destino fora da lista de permitidos |
+| 131047 | Passou da janela de 24h; só template pré-aprovado |
+| 131026 | Destino sem WhatsApp ou sem conseguir receber |
+| 133010 | Número remetente não registrado na API |
+
+### 7. Instalar e rodar
 
 ```bash
 npm install
@@ -145,7 +171,7 @@ npm start
 
 Em outro terminal, rode o `ngrok http 3000` e cadastre a URL na Meta (passo 2).
 
-### 7. Testar sem gastar mensagem de verdade
+### 8. Testar sem gastar mensagem de verdade
 
 Você pode simular uma mensagem chegando, sem depender do WhatsApp real, com:
 
