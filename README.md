@@ -84,11 +84,16 @@ A Meta só permite **texto livre** dentro de 24h desde a última mensagem que o 
 Os follow-ups de D+2, D+3, D+5 e D+7 quase certamente vão cair **fora** dessa janela — nesse caso,
 a API exige o uso de um **Message Template pré-aprovado** em vez de texto livre.
 
-O código já está preparado para isso (`src/whatsapp.js` tem a função `sendTemplate`), mas você
-vai precisar:
-1. Cadastrar os textos de follow-up como templates no Meta Business Manager.
+Os follow-ups (`src/followup.js`) já usam `sendTemplate` em vez de texto livre, então você
+só vai precisar:
+1. Cadastrar os textos de follow-up como templates no Meta Business Manager. Os textos em
+   `src/messages.js` (`followupD2`, `followupD3`, `followupD5`, `followupD7`) servem de
+   referência de conteúdo — `followupD3` e `followupD7` têm variáveis (nome, horários) que
+   viram os parâmetros `{{1}}`, `{{2}}` etc. do template.
 2. Esperar a aprovação (geralmente rápida, mas não é instantânea).
-3. Trocar `sendText` por `sendTemplate` nas chamadas de follow-up em `src/followup.js`.
+3. Colocar o nome de cada template aprovado em `WHATSAPP_TEMPLATE_D2` / `_D3` / `_D5` / `_D7`
+   no `.env` (veja `.env.example`). Enquanto uma dessas variáveis não estiver preenchida, o
+   follow-up correspondente fica pulado (com aviso no log) em vez de falhar.
 
 ## Antes de ir pra produção — checklist mínimo
 
