@@ -17,6 +17,7 @@ briefing técnico. Testado localmente end-to-end (webhook → qualificação →
 - Alerta de handoff (log no console + webhook opcional, ex: Slack/Zapier)
 - **Validação da assinatura da Meta** (`X-Hub-Signature-256`) — rejeita POST que não veio da Meta
 - **Dedupe de evento reenviado** — a Meta reenvia o mesmo evento quando o webhook demora ou falha; sem isso o lead pulava uma etapa do fluxo
+- **Assistente com IA** (Claude API) — entende a resposta escrita de qualquer jeito, responde dúvida fora do roteiro e extrai o que o lead contou, em vez de assumir que "a mensagem 2 é sempre o motivo"
 - **Dashboard de leads** (`/dashboard`): funil de qualificação, leads por dia, classificação, alerta de risco e a lista completa com busca e filtros
 
 ## O que você precisa fazer antes de rodar de verdade
@@ -97,6 +98,69 @@ Veja o estado do lead em `data/leads.json` e os logs no terminal.
 
 ---
 
+## Assistente com IA
+
+Sem `ANTHROPIC_API_KEY` no `.env`, o bot funciona pelo roteiro fixo de sempre.
+Com a chave, a assistente assume a conversa — e o roteiro fixo vira a rede de
+segurança.
+
+### A ordem em que as coisas rodam
+
+```
+mensagem chega
+  │
+  ├─ 1. sinal de crise por palavra-chave  ──► HANDOFF urgente
+  │      (determinístico, ANTES da IA, sempre)
+  ├─ 2. intenção de compra por palavra-chave ──► HANDOFF
+  ├─ 3. fora de escopo por palavra-chave  ──► DESQUALIFICADO
+  │
+  ├─ 4. assistente com IA ──► interpreta, responde, extrai motivo/histórico/formato
+  │        │                  (e sinaliza risco como SEGUNDA camada)
+  │        └─ devolveu null? ─┐
+  │                           │
+  └─ 5. roteiro fixo  ◄───────┘
+```
+
+**Por que a checagem de crise roda antes da IA e não dentro dela:** essa
+checagem não pode depender de rede, de saldo na API, nem de o modelo ter lido a
+frase do jeito certo. A IA *também* tem instrução de sinalizar risco — mas como
+segunda camada, nunca como a única. Se ela perceber um risco que as
+palavras-chave não pegaram, o handoff acontece do mesmo jeito.
+
+### Quando a IA não é usada
+
+A assistente devolve `null` e o roteiro fixo assume, sem o bot nunca ficar mudo,
+em qualquer um destes casos:
+
+- `ANTHROPIC_API_KEY` ausente, ou `ASSISTENTE_IA=off`
+- Erro de rede, rate limit, chave inválida, saldo acabado
+- Resposta vazia ou JSON inválido
+- **Resposta barrada por compliance** — se escapar preço, "plano" ou "consulta
+  psiquiátrica" numa resposta, ela é descartada e o texto fixo de
+  `src/messages.js` vai no lugar
+
+Essa última é deliberadamente redundante: o system prompt já proíbe tudo isso,
+mas "o prompt manda" não é garantia de nada.
+
+### Nos desfechos, quem fala é o texto fixo
+
+Quando a intenção é risco, compra ou fora de escopo, o que vai pro lead é o
+texto de `src/messages.js`, **não** o texto que a IA gerou. São os casos em que
+a palavra exata importa (acolhimento de risco, desqualificação gentil) ou em que
+um deslize custa caro (falar preço respondendo a "quanto custa"). A IA só fala
+com as próprias palavras na conversa normal de qualificação.
+
+### Custo
+
+Roda em `claude-opus-5` por padrão. O system prompt fica em cache
+(`cache_control`), então a partir da segunda mensagem de cada lead a maior parte
+do contexto sai a ~10% do preço. O histórico da conversa é cortado nos últimos
+12 turnos pra conta não crescer sem fim numa conversa longa.
+
+Pra trocar de modelo, use `CLAUDE_MODEL` no `.env`.
+
+---
+
 ## Testes automatizados
 
 ```bash
@@ -109,6 +173,8 @@ Cobre as partes onde um erro silencioso custa caro:
 - **Casamento do telefone no upsert do Sheets** — se falhar, cada mensagem cria uma linha nova e a planilha vira um log em vez de um CRM
 - **Assinatura da Meta** — incluindo corpo adulterado com assinatura antiga
 - **Expiração dos ids de evento já processados**
+- **Compliance da assistente** — preço, "plano" e "consulta psiquiátrica" barrados
+- **Aplicação da resposta da IA** no funil — incluindo não apagar campo já preenchido e não reiniciar o relógio dos follow-ups
 
 ---
 
@@ -166,6 +232,7 @@ só vai precisar:
 
 - [ ] Testar a lista de frases de crise com variações reais (a lista atual em `src/triggers.js` é um ponto de partida — revise com a equipe clínica)
 - [ ] Testar a lista de frases de intenção de compra com o vocabulário real dos seus leads
+- [ ] Revisar o system prompt de `src/assistente.js` com o Dr. Jesrryel antes do go-live
 - [ ] Definir `WHATSAPP_APP_SECRET` (sem ele o webhook aceita POST de qualquer um)
 - [ ] Configurar `HANDOFF_ALERT_WEBHOOK_URL` pra você receber o alerta de handoff de verdade (não só no log do terminal)
 - [ ] Decidir se vai continuar rodando localmente (computador sempre ligado) ou migrar pra um servidor/VPS

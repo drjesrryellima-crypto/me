@@ -6,6 +6,7 @@ const { iniciarAgendador } = require('./followup');
 const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
 const { exigirAssinatura, avisarSeSemAppSecret } = require('./assinatura');
 const { jaProcessado } = require('./dedupe');
+const assistente = require('./assistente');
 
 const app = express();
 // verify guarda o corpo CRU antes do parse. A assinatura da Meta é calculada
@@ -90,5 +91,6 @@ app.listen(PORT, () => {
   checkGoogleSheetsSetup();
   avisarSeDesprotegido();
   avisarSeSemAppSecret();
+  assistente.avisarSeDesligada();
   iniciarAgendador();
 });
