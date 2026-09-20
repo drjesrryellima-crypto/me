@@ -159,6 +159,9 @@ resposta, não no status HTTP) e traduz os códigos que mais aparecem:
 | 131047 | Passou da janela de 24h; só template pré-aprovado |
 | 131026 | Destino sem WhatsApp ou sem conseguir receber |
 | 133010 | Número remetente não registrado na API |
+| 131037 | Nome de exibição ainda não aprovado — número novo recebe, mas não envia |
+| 131042 | Falta forma de pagamento na conta do WhatsApp Business |
+| 131031 | Conta bloqueada ou restringida pela Meta |
 
 ### 7. Instalar e rodar
 
