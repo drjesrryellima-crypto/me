@@ -92,6 +92,19 @@ Veja o estado do lead em `data/leads.json` e os logs no terminal.
 
 ---
 
+## Testes automatizados
+
+```bash
+npm test
+```
+
+Cobre as duas partes onde um erro silencioso custa caro: a detecção de sinal de
+crise (um falso negativo aqui é um lead em risco tratado como lead comum) e o
+casamento do telefone no upsert do Google Sheets (se falhar, cada mensagem cria
+uma linha nova e a planilha vira um log em vez de um CRM).
+
+---
+
 ## Dashboard de leads
 
 Com o servidor rodando, abra:
@@ -149,4 +162,4 @@ só vai precisar:
 - [ ] Configurar `HANDOFF_ALERT_WEBHOOK_URL` pra você receber o alerta de handoff de verdade (não só no log do terminal)
 - [ ] Decidir se vai continuar rodando localmente (computador sempre ligado) ou migrar pra um servidor/VPS
 - [ ] Definir um `DASHBOARD_TOKEN` forte (o painel expõe telefone e motivo de cada lead)
-- [ ] Rodar os testes do checklist de aceite do briefing técnico antes do go-live real
+- [ ] Rodar `npm test` e o checklist de aceite do briefing técnico antes do go-live real
