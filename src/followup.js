@@ -80,12 +80,28 @@ async function checarFollowups() {
   }
 }
 
+// Servidor em nuvem roda em UTC por padrão. Sem fixar o fuso aqui, "09:00"
+// viraria 06:00 em Mossoró e o lead receberia o follow-up de madrugada.
+const FUSO_PADRAO = 'America/Fortaleza'; // Mossoró/RN
+const FUSO = process.env.FOLLOWUP_TIMEZONE || FUSO_PADRAO;
+const HORA = process.env.FOLLOWUP_HORA || '9';
+
 function iniciarAgendador() {
-  // Todo dia às 09:00 (horário do sistema onde o processo estiver rodando)
-  cron.schedule('0 9 * * *', () => {
-    checarFollowups().catch((err) => console.error('[followup] erro:', err));
-  });
-  console.log('[followup] agendador iniciado (todo dia às 09:00)');
+  const tarefa = () => checarFollowups().catch((err) => console.error('[followup] erro:', err));
+
+  try {
+    cron.schedule(`0 ${HORA} * * *`, tarefa, { timezone: FUSO });
+    console.log(`[followup] agendador iniciado (todo dia às ${HORA}:00, fuso ${FUSO})`);
+  } catch (err) {
+    // Fuso escrito errado no .env derrubava o processo inteiro no boot — ou
+    // seja, o webhook parava de receber mensagem por causa de uma config de
+    // follow-up. Melhor agendar no fuso padrão e gritar no log.
+    console.error(
+      `[followup] ⚠️  FOLLOWUP_TIMEZONE inválido ("${FUSO}"): ${err.message}. ` +
+        `Agendando em ${FUSO_PADRAO} — corrija o .env.`
+    );
+    cron.schedule(`0 ${HORA} * * *`, tarefa, { timezone: FUSO_PADRAO });
+  }
 }
 
 module.exports = { iniciarAgendador, checarFollowups };

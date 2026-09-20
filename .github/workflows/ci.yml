@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Testa a detecção de crise, o compliance da assistente, o casamento do
+      # telefone no Sheets e a aplicação da resposta da IA no funil.
+      - run: npm test
+
+      # O servidor precisa subir de verdade. Um require quebrado passaria
+      # pelos testes unitários e só apareceria no deploy.
+      - name: Servidor sobe e responde no /health
+        env:
+          PORT: 3999
+          WHATSAPP_VERIFY_TOKEN: ci-token
+          DASHBOARD_TOKEN: ci-dashboard-token-longo
+        run: |
+          npm start &
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:3999/health > /dev/null; then
+              echo "servidor respondeu"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "servidor não respondeu no /health"
+          exit 1

@@ -6,12 +6,15 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js",
+    "testar-planilha": "node scripts/testar-planilha.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "dotenv": "^16.4.5",
+    "@anthropic-ai/sdk": "^0.127.0",
     "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "googleapis": "^140.0.1",
     "node-cron": "^3.0.3"
   }

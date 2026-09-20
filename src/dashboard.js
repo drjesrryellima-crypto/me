@@ -2,6 +2,7 @@ const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const { readAll } = require('./state');
+const { ETAPA_QUALIFICACAO, ETAPA_FOLLOWUP, ROTULO_ESTADO, ehRisco } = require('./estados');
 
 const TOKEN = process.env.DASHBOARD_TOKEN;
 const PAGE = path.join(__dirname, '..', 'public', 'dashboard.html');
@@ -32,45 +33,6 @@ function exigirToken(req, res, next) {
     return res.status(401).json({ erro: 'token inválido ou ausente' });
   }
   return next();
-}
-
-// --- Vocabulário dos estados da máquina de estados do flow.js ---
-
-const ETAPA_QUALIFICACAO = [
-  'NOVO',
-  'AGUARDANDO_MOTIVO',
-  'AGUARDANDO_HISTORICO',
-  'AGUARDANDO_FORMATO',
-];
-
-const ETAPA_FOLLOWUP = [
-  'FOLLOWUP_D2',
-  'FOLLOWUP_D3',
-  'FOLLOWUP_D5',
-  'FOLLOWUP_D7',
-  'REENGAJAMENTO_MENSAL',
-];
-
-const ROTULO_ESTADO = {
-  NOVO: 'Novo',
-  AGUARDANDO_MOTIVO: 'Aguardando motivo',
-  AGUARDANDO_HISTORICO: 'Aguardando histórico',
-  AGUARDANDO_FORMATO: 'Aguardando formato',
-  CATALOGO_ENVIADO: 'Catálogo enviado',
-  FOLLOWUP_D2: 'Follow-up D+2',
-  FOLLOWUP_D3: 'Follow-up D+3',
-  FOLLOWUP_D5: 'Follow-up D+5',
-  FOLLOWUP_D7: 'Follow-up D+7',
-  REENGAJAMENTO_MENSAL: 'Reengajamento mensal',
-  HANDOFF: 'Handoff',
-  DESQUALIFICADO: 'Desqualificado',
-  CLIENTE: 'Cliente',
-};
-
-const MARCA_RISCO = 'RISCO/CRISE';
-
-function ehRisco(lead) {
-  return typeof lead.notas === 'string' && lead.notas.includes(MARCA_RISCO);
 }
 
 function diaIso(valor) {
