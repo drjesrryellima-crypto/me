@@ -15,6 +15,8 @@ briefing técnico. Testado localmente end-to-end (webhook → qualificação →
 - Registro de cada lead em arquivo local (`data/leads.json`) + integração com Google Sheets
 - Agendador dos follow-ups D+2, D+3, D+5, D+7
 - Alerta de handoff (log no console + webhook opcional, ex: Slack/Zapier)
+- **Validação da assinatura da Meta** (`X-Hub-Signature-256`) — rejeita POST que não veio da Meta
+- **Dedupe de evento reenviado** — a Meta reenvia o mesmo evento quando o webhook demora ou falha; sem isso o lead pulava uma etapa do fluxo
 - **Dashboard de leads** (`/dashboard`): funil de qualificação, leads por dia, classificação, alerta de risco e a lista completa com busca e filtros
 
 ## O que você precisa fazer antes de rodar de verdade
@@ -26,7 +28,10 @@ briefing técnico. Testado localmente end-to-end (webhook → qualificação →
 3. No painel do WhatsApp, pegue:
    - **Token de acesso** (comece com o temporário pra testar; depois gere um permanente via System User)
    - **Phone Number ID**
+   - **App Secret** (em Configurações → Básico) — é com ele que o servidor confere que o POST veio mesmo da Meta
 4. Cole esses valores no arquivo `.env` (copie `.env.example` para `.env` primeiro).
+
+> 🔒 **`WHATSAPP_APP_SECRET` não é opcional em produção.** Sem ele, o `/webhook` aceita POST de qualquer origem — dá pra inventar lead, forjar mensagem de um telefone que não é seu ou disparar um falso alerta de `RISCO/CRISE`. Pra teste local com `curl` o servidor deixa passar sem ele (e avisa no startup), mas nunca suba pra um endereço público assim.
 
 > ⚠️ A aprovação para produção (poder mandar mensagem pra qualquer número, não só números de teste) exige verificação da empresa pela Meta — isso pode levar alguns dias. Comece testando com números de teste cadastrados no próprio painel.
 
@@ -98,10 +103,12 @@ Veja o estado do lead em `data/leads.json` e os logs no terminal.
 npm test
 ```
 
-Cobre as duas partes onde um erro silencioso custa caro: a detecção de sinal de
-crise (um falso negativo aqui é um lead em risco tratado como lead comum) e o
-casamento do telefone no upsert do Google Sheets (se falhar, cada mensagem cria
-uma linha nova e a planilha vira um log em vez de um CRM).
+Cobre as partes onde um erro silencioso custa caro:
+
+- **Detecção de sinal de crise** — um falso negativo aqui é um lead em risco tratado como lead comum
+- **Casamento do telefone no upsert do Sheets** — se falhar, cada mensagem cria uma linha nova e a planilha vira um log em vez de um CRM
+- **Assinatura da Meta** — incluindo corpo adulterado com assinatura antiga
+- **Expiração dos ids de evento já processados**
 
 ---
 
@@ -159,6 +166,7 @@ só vai precisar:
 
 - [ ] Testar a lista de frases de crise com variações reais (a lista atual em `src/triggers.js` é um ponto de partida — revise com a equipe clínica)
 - [ ] Testar a lista de frases de intenção de compra com o vocabulário real dos seus leads
+- [ ] Definir `WHATSAPP_APP_SECRET` (sem ele o webhook aceita POST de qualquer um)
 - [ ] Configurar `HANDOFF_ALERT_WEBHOOK_URL` pra você receber o alerta de handoff de verdade (não só no log do terminal)
 - [ ] Decidir se vai continuar rodando localmente (computador sempre ligado) ou migrar pra um servidor/VPS
 - [ ] Definir um `DASHBOARD_TOKEN` forte (o painel expõe telefone e motivo de cada lead)

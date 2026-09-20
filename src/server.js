@@ -4,9 +4,14 @@ const express = require('express');
 const { handleIncomingMessage } = require('./flow');
 const { iniciarAgendador } = require('./followup');
 const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
+const { exigirAssinatura, avisarSeSemAppSecret } = require('./assinatura');
+const { jaProcessado } = require('./dedupe');
 
 const app = express();
-app.use(express.json());
+// verify guarda o corpo CRU antes do parse. A assinatura da Meta é calculada
+// sobre os bytes exatos que ela enviou — reserializar o JSON com
+// JSON.stringify daria outro resultado e a conferência nunca bateria.
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // Painel de leads (/dashboard + /api/leads) — protegido por DASHBOARD_TOKEN
 app.use(criarRouter());
@@ -45,7 +50,7 @@ app.get('/webhook', (req, res) => {
 });
 
 // 2) Recebimento de mensagens
-app.post('/webhook', async (req, res) => {
+app.post('/webhook', exigirAssinatura, async (req, res) => {
   // Responder rápido pra Meta não reenviar o mesmo evento
   res.sendStatus(200);
 
@@ -56,6 +61,14 @@ app.post('/webhook', async (req, res) => {
     const message = value?.messages?.[0];
 
     if (!message) return; // pode ser um evento de status (entregue/lido), não uma mensagem nova
+
+    // A Meta reenvia o mesmo evento quando o webhook demora ou falha. Sem isso,
+    // o reenvio avançaria a máquina de estados uma casa a mais e a resposta do
+    // lead cairia no campo errado.
+    if (jaProcessado(message.id)) {
+      console.log(`[webhook] evento ${message.id} já processado — reenvio da Meta, ignorado.`);
+      return;
+    }
 
     const from = message.from; // número do lead
     const text = message.text?.body || '';
@@ -76,5 +89,6 @@ app.listen(PORT, () => {
   console.log(`Dashboard: http://localhost:${PORT}/dashboard?token=...`);
   checkGoogleSheetsSetup();
   avisarSeDesprotegido();
+  avisarSeSemAppSecret();
   iniciarAgendador();
 });
