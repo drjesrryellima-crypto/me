@@ -106,7 +106,35 @@ DASHBOARD_TOKEN=uma-senha-longa-e-aleatoria-que-so-voce-sabe
 Sem isso, `/dashboard` responde 503 e o resto do sistema (webhook, follow-ups)
 continua funcionando normalmente.
 
-### 5. Instalar e rodar
+### 5. Testar a planilha antes de qualquer outra coisa
+
+Antes de mexer com Meta, ngrok ou deploy, confirme só uma coisa: o bot consegue
+escrever na planilha?
+
+```bash
+npm install
+cp .env.example .env
+# edite o .env: GOOGLE_SERVICE_ACCOUNT_JSON, GOOGLE_SHEET_ID, GOOGLE_SHEET_TAB
+npm run testar-planilha
+```
+
+Escreve um lead de teste (telefone `5500000000000`) na aba e diz o que aconteceu.
+**Rode duas vezes:** a segunda tem que *atualizar* a mesma linha, não criar outra —
+é assim que se prova que o upsert está achando o telefone na coluna A.
+
+Quando falha, o script diz o motivo em vez de cuspir o erro cru da API. Os quatro
+que acontecem de verdade:
+
+| Sintoma | O que fazer |
+|---|---|
+| `Unable to parse range` | O nome da aba no `.env` não bate com o da planilha (maiúscula, acento, espaço) |
+| `403 / permission` | A planilha não foi compartilhada com a service account como **Editor** |
+| `DECODER routines::unsupported` | O JSON da credencial está corrompido — baixe de novo sem editar |
+| `API has not been used` | A Google Sheets API não está ativada no projeto do Google Cloud |
+
+Apague a linha de teste depois. Ela não atrapalha nada, mas polui.
+
+### 6. Instalar e rodar
 
 ```bash
 npm install
@@ -117,7 +145,7 @@ npm start
 
 Em outro terminal, rode o `ngrok http 3000` e cadastre a URL na Meta (passo 2).
 
-### 6. Testar sem gastar mensagem de verdade
+### 7. Testar sem gastar mensagem de verdade
 
 Você pode simular uma mensagem chegando, sem depender do WhatsApp real, com:
 
