@@ -29,6 +29,7 @@ const lead = {
   formato: '',
   classificacao: '',
   historicoConversa: [],
+  state: null,
 };
 
 function mostrarResposta(texto, rotulo, cor = azul) {
@@ -50,23 +51,42 @@ function mostrarFicha() {
   console.log('');
 }
 
+// Mesmo desfecho do encaminharParaHumano() no flow.js: mostra o texto fixo,
+// registra ele no histórico (senão a próxima chamada à IA vê dois turnos de
+// usuário seguidos, sem resposta no meio, e se confunde) e marca o lead como
+// entregue ao humano.
+function handoff(texto, rotulo, cor, novoState) {
+  mostrarResposta(texto, rotulo, cor);
+  lead.historicoConversa.push({ role: 'assistant', content: texto });
+  lead.state = novoState;
+}
+
 async function responder(texto) {
+  // Registrado ANTES de qualquer checagem — igual ao registrarTurno('user', ...)
+  // no topo do handleIncomingMessage do flow.js.
+  lead.historicoConversa.push({ role: 'user', content: texto });
+
   // Mesma ordem do flow.js — determinístico primeiro, sempre.
   if (isCrisisSignal(texto)) {
-    mostrarResposta(messages.acolhimentoRisco(), 'RISCO — palavra-chave, sem consultar a IA', vermelho);
+    handoff(messages.acolhimentoRisco(), 'RISCO — palavra-chave, sem consultar a IA', vermelho, 'HANDOFF');
     console.log(vermelho('  >> HANDOFF URGENTE: alerta dispararia agora.\n'));
     return;
   }
   if (isBuyingSignal(texto)) {
-    mostrarResposta(messages.handoffCompra(), 'COMPRA — palavra-chave, sem consultar a IA', verde);
+    handoff(messages.handoffCompra(), 'COMPRA — palavra-chave, sem consultar a IA', verde, 'HANDOFF');
     return;
   }
   if (isOutOfScope(texto)) {
-    mostrarResposta(messages.desqualificacaoGentil(), 'FORA DE ESCOPO — palavra-chave', cinza);
+    handoff(messages.desqualificacaoGentil(), 'FORA DE ESCOPO — palavra-chave', cinza, 'DESQUALIFICADO');
     return;
   }
 
-  lead.historicoConversa.push({ role: 'user', content: texto });
+  // Lead já entregue ao humano: a automação fica em silêncio, igual ao
+  // flow.js (linha do ['HANDOFF', 'DESQUALIFICADO', 'CLIENTE'].includes(state)).
+  if (['HANDOFF', 'DESQUALIFICADO', 'CLIENTE'].includes(lead.state)) {
+    console.log(cinza('  >> (silêncio) automação não responde — lead já em atendimento humano.\n'));
+    return;
+  }
 
   process.stdout.write(cinza('  pensando...'));
   const ia = await assistente.responder({ lead, texto });
@@ -82,16 +102,16 @@ async function responder(texto) {
   }
 
   if (ia.intencao === 'risco') {
-    mostrarResposta(messages.acolhimentoRisco(), 'RISCO — sinalizado pela IA', vermelho);
+    handoff(messages.acolhimentoRisco(), 'RISCO — sinalizado pela IA', vermelho, 'HANDOFF');
     console.log(vermelho('  >> HANDOFF URGENTE: alerta dispararia agora.\n'));
     return;
   }
   if (ia.intencao === 'compra') {
-    mostrarResposta(messages.handoffCompra(), 'COMPRA — sinalizado pela IA', verde);
+    handoff(messages.handoffCompra(), 'COMPRA — sinalizado pela IA', verde, 'HANDOFF');
     return;
   }
   if (ia.intencao === 'fora_de_escopo') {
-    mostrarResposta(messages.desqualificacaoGentil(), 'FORA DE ESCOPO — sinalizado pela IA', cinza);
+    handoff(messages.desqualificacaoGentil(), 'FORA DE ESCOPO — sinalizado pela IA', cinza, 'DESQUALIFICADO');
     return;
   }
 

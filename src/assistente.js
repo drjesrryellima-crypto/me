@@ -118,6 +118,15 @@ function montarMensagens(historicoConversa, textoNovo) {
     .filter((t) => t && t.role && t.content)
     .map((t) => ({ role: t.role, content: t.content }));
 
+  // Quem chama (flow.js, conversar.js) já registra o turno do usuário no
+  // histórico ANTES de consultar a IA — de propósito, pra esse registro não
+  // depender da API responder. Sem essa checagem, a última fala do lead ia
+  // parar duplicada no fim da lista mandada pro modelo.
+  const ultimo = anteriores[anteriores.length - 1];
+  if (ultimo && ultimo.role === 'user' && ultimo.content === textoNovo) {
+    return anteriores;
+  }
+
   return [...anteriores, { role: 'user', content: textoNovo }];
 }
 

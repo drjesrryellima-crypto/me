@@ -71,3 +71,17 @@ test('histórico vazio ou ausente não quebra', () => {
   assert.deepStrictEqual(montarMensagens(undefined, 'oi'), [{ role: 'user', content: 'oi' }]);
   assert.deepStrictEqual(montarMensagens([], 'oi'), [{ role: 'user', content: 'oi' }]);
 });
+
+// flow.js e conversar.js registram o turno do usuário no histórico ANTES de
+// chamar a IA (pra não depender da API responder pra guardar o que o lead
+// disse). Sem tratar isso aqui, a última fala do lead ia duplicada pro modelo.
+test('não duplica a mensagem atual quando ela já é o último item do histórico', () => {
+  const historico = [
+    { role: 'user', content: 'oi' },
+    { role: 'assistant', content: 'oi, tudo bem?' },
+    { role: 'user', content: 'gostaria de saber sobre valores' },
+  ];
+
+  const msgs = montarMensagens(historico, 'gostaria de saber sobre valores');
+  assert.deepStrictEqual(msgs, historico);
+});
