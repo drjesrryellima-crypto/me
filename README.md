@@ -275,6 +275,26 @@ a palavra exata importa (acolhimento de risco, desqualificação gentil) ou em q
 um deslize custa caro (falar preço respondendo a "quanto custa"). A IA só fala
 com as próprias palavras na conversa normal de qualificação.
 
+### Conversar com ela antes de qualquer paciente ver
+
+```bash
+npm run conversar
+```
+
+Abre uma conversa no Terminal onde você escreve como se fosse um lead chegando
+no WhatsApp. Nada vai pro WhatsApp nem pra planilha — é só a conversa, pra
+revisar o tom e as regras antes do go-live.
+
+Ao lado de cada resposta ele mostra **por que** ela saiu daquele jeito:
+
+- `[RISCO — palavra-chave, sem consultar a IA]` — o gatilho determinístico pegou
+- `[RISCO — sinalizado pela IA]` — a segunda camada pegou o que as palavras-chave não pegaram
+- `[conversa normal]` — a assistente falando com as próprias palavras
+- `[IA indisponível — caiu no roteiro fixo]` — o fallback entrou
+
+E mostra a ficha que ela foi montando (motivo, histórico, formato,
+classificação), pra você ver se ela está entendendo direito o que o lead disse.
+
 ### Custo
 
 Roda em `claude-opus-5` por padrão. O system prompt fica em cache

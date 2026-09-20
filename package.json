@@ -9,7 +9,8 @@
     "dev": "node --watch src/server.js",
     "test": "node --test test/*.test.js",
     "testar-planilha": "node scripts/testar-planilha.js",
-    "listar-abas": "node scripts/listar-abas.js"
+    "listar-abas": "node scripts/listar-abas.js",
+    "conversar": "node scripts/conversar.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",
