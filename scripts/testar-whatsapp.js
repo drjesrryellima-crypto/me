@@ -53,6 +53,12 @@ function explicar(err) {
       'Passaram mais de 24h desde a última mensagem que essa pessoa te mandou. Fora dessa janela, a Meta só aceita template pré-aprovado.',
     131026: 'O número de destino não tem WhatsApp, ou não consegue receber mensagem.',
     133010: 'O número remetente não está registrado na API.',
+    131037:
+      'O nome de exibição desse número ainda não foi aprovado pela Meta. Número novo começa assim: dá pra RECEBER mensagem, mas não dá pra ENVIAR até o nome passar pela análise. Veja em business.facebook.com/wa/manage/phone-numbers — a coluna "Nome" mostra o status.',
+    131042:
+      'Falta forma de pagamento na conta do WhatsApp Business. Sem ela a Meta não deixa iniciar conversa.',
+    131031: 'A conta do WhatsApp Business foi bloqueada ou restringida pela Meta.',
+    368: 'O número foi temporariamente bloqueado por violação de política.',
   };
 
   const dica = dicas[meta.code];
