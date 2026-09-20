@@ -1,6 +1,6 @@
 const { google } = require('googleapis');
 const fs = require('fs');
-const { rotular, ehRisco } = require('./estados');
+const { estagioCrm, ehRisco } = require('./estados');
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || 'Leads';
@@ -67,7 +67,7 @@ function montarLinha(lead) {
   return [
     lead.phone,
     lead.nome || '',
-    rotular(lead.state),
+    estagioCrm(lead.state),
     lead.classificacao || '',
     ehRisco(lead) ? 'SIM' : '',
     lead.motivo || '',

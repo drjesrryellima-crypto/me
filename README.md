@@ -53,13 +53,43 @@ Isso te dá uma URL tipo `https://algumacoisa.ngrok-free.app`. Use `https://algu
 
 1. No [Google Cloud Console](https://console.cloud.google.com), crie um projeto → ative a **Google Sheets API**.
 2. Crie uma **Service Account** → gere uma chave JSON → salve como `credentials/service-account.json` nesta pasta.
-3. Crie uma planilha no Google Sheets com uma aba chamada `Leads` e a primeira linha com estes 13 cabeçalhos, nesta ordem (a gravação é posicional — coluna A é telefone, B é nome, e assim por diante):
+3. O bot grava numa **aba própria** da planilha `CRM_Leads_Dr_Jesrryel - OFICIAL`
+   (ID `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg`), configurada em
+   `GOOGLE_SHEET_TAB`. Tem que ser uma aba só dele: nas outras abas o telefone
+   está em coluna diferente, e o upsert procura sempre na coluna A — apontar
+   pra aba errada empilharia linha nova a cada mensagem em cima dos leads reais.
+
+   A primeira linha da aba precisa ter estes 13 cabeçalhos, nesta ordem (a
+   gravação é posicional — coluna A é telefone, B é nome, e assim por diante):
 
    ```
    Telefone | Nome | Estágio | Classificação | Risco | Motivo | Histórico | Formato | Follow-ups enviados | Notas | Primeiro contato | Última atualização | Estado (técnico)
    ```
 
-   **Estágio** é o rótulo legível ("Follow-up D+2"); **Estado (técnico)** é o código cru (`FOLLOWUP_D2`), que serve pra filtrar e pra debugar. **Risco** marca `SIM` em quem foi sinalizado — é a coluna pra deixar fixa e colorida.
+   **Estágio** fala o vocabulário da aba FUNIL (Novo / Qualificação / Nutrição /
+   Consulta Proposta / Desqualificado / Convertido), pra dar pra cruzar as duas.
+   **Estado (técnico)** guarda o código cru (`FOLLOWUP_D2`) sem perder precisão.
+   **Risco** marca `SIM` em quem foi sinalizado — é a coluna pra deixar fixa e colorida.
+
+   | Estado do fluxo | Estágio no CRM |
+   |---|---|
+   | `NOVO` | Novo |
+   | `AGUARDANDO_MOTIVO/HISTORICO/FORMATO` | Qualificação |
+   | `CATALOGO_ENVIADO`, `FOLLOWUP_D2/D3/D5/D7`, `REENGAJAMENTO_MENSAL` | Nutrição |
+   | `HANDOFF` | Consulta Proposta |
+   | `DESQUALIFICADO` | Desqualificado |
+   | `CLIENTE` | Convertido |
+
+   **Três estágios o bot nunca escreve** — *Consulta Agendada*, *Convertido* e
+   *Perdido* dependem do que acontece fora do WhatsApp. Continuam sendo
+   preenchidos por pessoa, na aba FUNIL.
+
+   **O encaixe imperfeito:** na aba FUNIL, "Consulta Proposta" significa que já
+   ofereceram horários. Aqui significa só que a automação passou pra um humano —
+   o que para intenção de compra dá no mesmo, mas para `RISCO/CRISE` não é
+   estágio de venda nenhum. Quem desempata é a coluna **Risco**: *Consulta
+   Proposta + Risco=SIM* se lê como "humano precisa agir agora, e não é sobre
+   vender".
 4. Compartilhe a planilha com o e-mail da service account (está dentro do JSON, campo `client_email`) com permissão de **Editor**.
 5. Pegue o ID da planilha (fica na URL, entre `/d/` e `/edit`) e coloque em `GOOGLE_SHEET_ID` no `.env`.
 
