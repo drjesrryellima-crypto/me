@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test test/*.test.js",
-    "testar-planilha": "node scripts/testar-planilha.js"
+    "testar-planilha": "node scripts/testar-planilha.js",
+    "listar-abas": "node scripts/listar-abas.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

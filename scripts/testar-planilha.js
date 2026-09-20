@@ -32,8 +32,18 @@ function conferirConfiguracao() {
         '     Baixe a chave JSON da service account no Google Cloud Console e salve nesse caminho.'
     );
   }
+  // Os valores de exemplo do .env.example passam pela checagem de "está
+  // definido?" e depois quebram lá na frente com um erro da API que não diz
+  // nada sobre a causa — o que faz perder tempo procurando no lugar errado.
+  const AINDA_EXEMPLO = /^coloque_aqui|^escolha_uma|^uma-senha-longa/;
+
   if (!process.env.GOOGLE_SHEET_ID) {
     problemas.push('GOOGLE_SHEET_ID não está definido no .env.');
+  } else if (AINDA_EXEMPLO.test(process.env.GOOGLE_SHEET_ID)) {
+    problemas.push(
+      `GOOGLE_SHEET_ID ainda está com o texto de exemplo ("${process.env.GOOGLE_SHEET_ID}").\n` +
+        '     Troque pelo ID da sua planilha — é o trecho da URL entre /d/ e /edit.'
+    );
   }
   if (!process.env.GOOGLE_SHEET_TAB) {
     problemas.push('GOOGLE_SHEET_TAB não está definido no .env (o nome exato da aba).');
@@ -78,7 +88,13 @@ async function main() {
     console.error(`  ${err.message}\n`);
 
     // Os três erros que acontecem de verdade, com a saída certa pra cada um.
-    if (/Unable to parse range|not found/i.test(err.message)) {
+    if (/Requested entity was not found/i.test(err.message)) {
+      console.error(
+        '  Causa provável: o GOOGLE_SHEET_ID do .env não corresponde a nenhuma planilha\n' +
+          '  que a service account consiga abrir. Confira o ID, e confirme que a planilha\n' +
+          '  foi compartilhada com a service account como Editor.\n'
+      );
+    } else if (/Unable to parse range/i.test(err.message)) {
       console.error(
         `  Causa provável: a aba "${process.env.GOOGLE_SHEET_TAB}" não existe com esse nome exato.\n` +
           '  Confira maiúscula, acento e espaço — tem que bater caractere por caractere.\n'
