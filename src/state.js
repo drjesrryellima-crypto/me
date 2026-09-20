@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'leads.json');
+// Em servidor (Railway, Render, container em geral) o disco é EFÊMERO: todo
+// deploy recria a máquina e leva junto tudo que estava em disco. Sem apontar
+// DATA_DIR pra um volume persistente, cada deploy apagaria os leads e o
+// histórico das conversas. Local, o padrão ./data continua valendo.
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+const DB_PATH = path.join(DATA_DIR, 'leads.json');
 
 function ensureDb() {
   const dir = path.dirname(DB_PATH);

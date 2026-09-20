@@ -47,13 +47,19 @@ ngrok http 3000
 
 Isso te dá uma URL tipo `https://algumacoisa.ngrok-free.app`. Use `https://algumacoisa.ngrok-free.app/webhook` como **Callback URL** no painel da Meta, e o valor de `WHATSAPP_VERIFY_TOKEN` do seu `.env` como **Verify Token**.
 
-> ⚠️ **Importante sobre "rodar no terminal":** enquanto for a versão gratuita do ngrok, a URL muda toda vez que você reinicia — ou seja, o WhatsApp só vai funcionar enquanto seu computador estiver ligado, o terminal aberto, e a URL cadastrada na Meta for a mesma da sessão atual do ngrok. Pra ficar "sempre no ar" de verdade, o próximo passo natural é colocar isso num servidor/VPS (ex: Railway, Render, um EC2 pequeno) — não precisa fazer isso agora, mas é bom já saber que "rodar no terminal" tem esse limite.
+> ⚠️ **Importante sobre "rodar no terminal":** enquanto for a versão gratuita do ngrok, a URL muda toda vez que você reinicia — ou seja, o WhatsApp só vai funcionar enquanto seu computador estiver ligado, o terminal aberto, e a URL cadastrada na Meta for a mesma da sessão atual do ngrok. Pra ficar sempre no ar, veja a seção **[Deploy na Railway](#deploy-na-railway)**.
 
 ### 3. Configurar o Google Sheets
 
 1. No [Google Cloud Console](https://console.cloud.google.com), crie um projeto → ative a **Google Sheets API**.
 2. Crie uma **Service Account** → gere uma chave JSON → salve como `credentials/service-account.json` nesta pasta.
-3. Crie uma planilha no Google Sheets com uma aba chamada `Leads` e a primeira linha com os cabeçalhos: `Telefone | Nome | Motivo | Classificação | Estado | Notas | Data`.
+3. Crie uma planilha no Google Sheets com uma aba chamada `Leads` e a primeira linha com estes 13 cabeçalhos, nesta ordem (a gravação é posicional — coluna A é telefone, B é nome, e assim por diante):
+
+   ```
+   Telefone | Nome | Estágio | Classificação | Risco | Motivo | Histórico | Formato | Follow-ups enviados | Notas | Primeiro contato | Última atualização | Estado (técnico)
+   ```
+
+   **Estágio** é o rótulo legível ("Follow-up D+2"); **Estado (técnico)** é o código cru (`FOLLOWUP_D2`), que serve pra filtrar e pra debugar. **Risco** marca `SIM` em quem foi sinalizado — é a coluna pra deixar fixa e colorida.
 4. Compartilhe a planilha com o e-mail da service account (está dentro do JSON, campo `client_email`) com permissão de **Editor**.
 5. Pegue o ID da planilha (fica na URL, entre `/d/` e `/edit`) e coloque em `GOOGLE_SHEET_ID` no `.env`.
 
@@ -95,6 +101,67 @@ curl -X POST http://localhost:3000/webhook \
 ```
 
 Veja o estado do lead em `data/leads.json` e os logs no terminal.
+
+---
+
+## Deploy na Railway
+
+Tira o sistema do "só funciona com o Mac ligado" e põe numa URL fixa, no ar 24/7.
+
+### 1. Volume persistente — faça isto ANTES do primeiro deploy
+
+**O disco da Railway é efêmero.** Todo deploy recria a máquina e leva junto tudo
+que estava em disco. Sem um volume, cada deploy apagaria os leads, o histórico
+das conversas e os ids de evento já processados — e o dedupe voltaria a deixar
+passar reenvio da Meta.
+
+No painel da Railway: **New → Volume**, monte em `/data`, e defina a variável:
+
+```
+DATA_DIR=/data
+```
+
+### 2. Subir o projeto
+
+```bash
+npm i -g @railway/cli
+railway login
+railway init          # ou: railway link, se o projeto já existe
+railway up
+```
+
+O `railway.json` na raiz já define o `npm start`, o healthcheck em `/health` e
+o restart automático em caso de falha.
+
+### 3. Variáveis de ambiente
+
+Copie do seu `.env` (menos `PORT` — a Railway injeta a dela) e some estas:
+
+| Variável | Valor | Por quê |
+|---|---|---|
+| `DATA_DIR` | `/data` | Sem isso, deploy apaga os leads |
+| `FOLLOWUP_TIMEZONE` | `America/Fortaleza` | Servidor roda em UTC; sem isso o follow-up sai 06:00 |
+| `WHATSAPP_APP_SECRET` | o App Secret da Meta | Agora a URL é pública e fixa — não é mais opcional |
+| `DASHBOARD_TOKEN` | uma senha longa | O painel expõe telefone e motivo de cada lead |
+
+O `GOOGLE_SERVICE_ACCOUNT_JSON` aponta pra um arquivo, e você não vai commitar
+credencial no repositório. Duas saídas: subir o JSON pro volume
+(`/data/service-account.json`) e apontar a variável pra lá, ou guardar o
+conteúdo do JSON numa variável e escrever o arquivo no boot.
+
+### 4. Apontar a Meta pra URL nova
+
+A Railway te dá uma URL fixa (`https://seu-app.up.railway.app`). No painel da
+Meta, troque a Callback URL do ngrok por `https://seu-app.up.railway.app/webhook`.
+Como a URL agora não muda mais, isso é a última vez que você mexe nisso.
+
+### O que verificar depois do primeiro deploy
+
+- `GET /health` responde `{"ok": true}`
+- No log de boot **não aparece** nenhum dos avisos de ⚠️ (`WHATSAPP_APP_SECRET`,
+  `DASHBOARD_TOKEN`, `ANTHROPIC_API_KEY`, credencial do Sheets)
+- O log do follow-up mostra o fuso certo: `fuso America/Fortaleza`
+- Faz um deploy novo e confere que os leads continuam lá — é o teste real do volume
 
 ---
 
@@ -175,6 +242,7 @@ Cobre as partes onde um erro silencioso custa caro:
 - **Expiração dos ids de evento já processados**
 - **Compliance da assistente** — preço, "plano" e "consulta psiquiátrica" barrados
 - **Aplicação da resposta da IA** no funil — incluindo não apagar campo já preenchido e não reiniciar o relógio dos follow-ups
+- **Colunas da planilha** — que a lista de colunas e o range gravado não saiam de sincronia, o que faria o dado cair na coluna errada sem ninguém notar
 
 ---
 
