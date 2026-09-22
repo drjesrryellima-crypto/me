@@ -50,6 +50,29 @@ Nada disso se resolve mexendo no código. É estado da conta na Meta, e o caminh
 **O canal em si funciona:** uma mensagem de teste foi entregue com sucesso pelo
 botão "Enviar mensagem" do painel da Meta, usando outro número.
 
+## Qual repositório é este
+
+Existem dois repositórios de bot de WhatsApp na conta. **O projeto é o `me`.**
+
+| | `me` | `triagem-whatsapp` |
+|---|---|---|
+| Linguagem | Node.js | Python/Flask |
+| Tamanho | ~2.000 linhas, 52 testes | 263 linhas, 1 commit, sem teste |
+| Máquina de estados | sim | não |
+| Assinatura da Meta | sim | não |
+| Dedupe de reenvio | sim | não |
+| Follow-ups D+2/3/5/7 | sim | não |
+| CRM de 13 colunas + FUNIL | sim | grava linha solta |
+| Painel de leads | sim | não |
+
+O `triagem-whatsapp` (último push 19/09/2026) foi o protótipo anterior — a
+primeira tentativa, antes do fluxo com qualificação, nutrição e handoff. Fica
+guardado como histórico. **Na Railway, e em qualquer deploy, escolha `me`.**
+
+As duas ausências que mais pesam no protótipo não são de conforto: sem
+validação de assinatura, quem descobrir o endereço forja um alerta de crise;
+sem dedupe, um reenvio da Meta joga a resposta do lead na coluna errada.
+
 ## Identificadores
 
 | O quê | Valor |
