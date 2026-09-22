@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { readAll, saveLead } = require('./state');
 const { sendTemplate } = require('./whatsapp');
+const { explicarErroMeta } = require('./erros-meta');
 
 // MVP simples: roda uma vez por dia (09:00) e verifica, para cada lead com
 // followupsAgendados = true, quantos dias se passaram desde que o catálogo
@@ -65,7 +66,20 @@ async function checarFollowups() {
       }
 
       const components = etapa.params.length ? [{ type: 'body', parameters: etapa.params }] : [];
-      await sendTemplate(phone, etapa.template, TEMPLATE_LANGUAGE, components);
+
+      // O try é por lead, não pelo lote. Sem ele, um único número que a Meta
+      // recusa (saiu do WhatsApp, template ainda não aprovado, janela vencida)
+      // estoura o await e mata o laço — e TODO MUNDO que vinha depois na fila
+      // fica sem follow-up naquele dia, em silêncio.
+      try {
+        await sendTemplate(phone, etapa.template, TEMPLATE_LANGUAGE, components);
+      } catch (err) {
+        console.error(
+          `[followup] falha ao enviar ${etapa.chave} para ${phone}: ${explicarErroMeta(err)}`
+        );
+        continue;
+      }
+
       enviados = [...enviados, etapa.chave];
       saveLead(phone, {
         followupsEnviados: enviados,
