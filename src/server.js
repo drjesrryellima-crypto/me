@@ -7,6 +7,7 @@ const { exigirAssinatura, avisarSeSemAppSecret } = require('./assinatura');
 const { jaProcessado } = require('./dedupe');
 const { carregarCredenciais } = require('./google-credenciais');
 const { diagnosticarVerificacao } = require('./verificacao');
+const { explicarErroMeta } = require('./erros-meta');
 const assistente = require('./assistente');
 
 const app = express();
@@ -89,7 +90,9 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     console.log(`[webhook] mensagem de ${from}: "${text}"`);
     await handleIncomingMessage({ from, text, nome: nomePerfil });
   } catch (err) {
-    console.error('[webhook] erro ao processar mensagem:', err.message);
+    // err.message sozinho é "Request failed with status code 400" — não diz a
+    // causa. O motivo real vem no corpo da resposta da Meta.
+    console.error('[webhook] erro ao processar mensagem:', explicarErroMeta(err));
   }
 });
 

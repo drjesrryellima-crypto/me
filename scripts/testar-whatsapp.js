@@ -12,6 +12,7 @@
 
 require('dotenv').config();
 const { sendText } = require('../src/whatsapp');
+const { explicarErroMeta } = require('../src/erros-meta');
 
 const AINDA_EXEMPLO = /^coloque_aqui|^escolha_uma/;
 
@@ -31,42 +32,6 @@ function conferirConfiguracao() {
 
 // A Meta devolve o motivo real dentro de error.error.message, não no status
 // HTTP. Sem desempacotar isso, o erro que chega é um 400 sem explicação.
-function explicar(err) {
-  const meta = err.response?.data?.error;
-
-  // Nem todo erro vem no formato da Meta: proxy corporativo, rede fora, DNS.
-  // Mostrar o corpo cru nesses casos é melhor que engolir e deixar só o
-  // status HTTP, que sozinho não diz nada.
-  if (!meta) {
-    const corpo = err.response?.data;
-    const cru = corpo ? `\n\n  Resposta recebida: ${JSON.stringify(corpo).slice(0, 300)}` : '';
-    return `${err.message}${cru}` +
-      '\n\n  Esse erro não veio no formato da API da Meta — pode ser rede, proxy ou firewall.';
-  }
-
-  const dicas = {
-    190: 'O token expirou ou é inválido. Os tokens temporários duram 24h — gere outro.',
-    100: 'Algum parâmetro está errado. Confira o WHATSAPP_PHONE_NUMBER_ID.',
-    131030:
-      'O número de destino não está na lista de destinatários permitidos. Enquanto o app está em modo de teste, só dá pra mandar pra números cadastrados no painel da Meta.',
-    131047:
-      'Passaram mais de 24h desde a última mensagem que essa pessoa te mandou. Fora dessa janela, a Meta só aceita template pré-aprovado.',
-    131026: 'O número de destino não tem WhatsApp, ou não consegue receber mensagem.',
-    133010: 'O número remetente não está registrado na API.',
-    131037:
-      'O nome de exibição desse número ainda não foi aprovado pela Meta. Número novo começa assim: dá pra RECEBER mensagem, mas não dá pra ENVIAR até o nome passar pela análise. Veja em business.facebook.com/wa/manage/phone-numbers — a coluna "Nome" mostra o status.',
-    131042:
-      'Falta forma de pagamento na conta do WhatsApp Business. Sem ela a Meta não deixa iniciar conversa.',
-    131031: 'A conta do WhatsApp Business foi bloqueada ou restringida pela Meta.',
-    368: 'O número foi temporariamente bloqueado por violação de política.',
-  };
-
-  const dica = dicas[meta.code];
-  return `${meta.message}${meta.error_data?.details ? ` (${meta.error_data.details})` : ''}` +
-    (dica ? `\n\n  O que isso quer dizer: ${dica}` : '') +
-    `\n\n  [código ${meta.code}]`;
-}
-
 async function main() {
   const destino = (process.argv[2] || '').replace(/\D/g, '');
 
@@ -104,7 +69,7 @@ async function main() {
     console.log('normalmente é o destino não estar na lista de permitidos.\n');
   } catch (err) {
     console.error('✗ Não deu pra enviar.\n');
-    console.error(`  ${explicar(err)}\n`);
+    console.error(`  ${explicarErroMeta(err, { multilinha: true })}\n`);
     process.exit(1);
   }
 }
