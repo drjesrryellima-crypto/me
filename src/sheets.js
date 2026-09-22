@@ -1,23 +1,20 @@
 const { google } = require('googleapis');
-const fs = require('fs');
+const { opcoesDeAuth } = require('./google-credenciais');
 const { estagioCrm, ehRisco } = require('./estados');
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || 'Leads';
-const CREDS_PATH = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 
 let sheetsClient = null;
 
 async function getClient() {
   if (sheetsClient) return sheetsClient;
-  if (!CREDS_PATH || !fs.existsSync(CREDS_PATH)) {
+  const opcoes = opcoesDeAuth(['https://www.googleapis.com/auth/spreadsheets']);
+  if (!opcoes) {
     console.warn('[sheets] credenciais do Google não encontradas — pulando gravação na planilha.');
     return null;
   }
-  const auth = new google.auth.GoogleAuth({
-    keyFile: CREDS_PATH,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
+  const auth = new google.auth.GoogleAuth(opcoes);
   const authClient = await auth.getClient();
   sheetsClient = google.sheets({ version: 'v4', auth: authClient });
   return sheetsClient;

@@ -1,11 +1,11 @@
 require('dotenv').config();
-const fs = require('fs');
 const express = require('express');
 const { handleIncomingMessage } = require('./flow');
 const { iniciarAgendador } = require('./followup');
 const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
 const { exigirAssinatura, avisarSeSemAppSecret } = require('./assinatura');
 const { jaProcessado } = require('./dedupe');
+const { carregarCredenciais } = require('./google-credenciais');
 const assistente = require('./assistente');
 
 const app = express();
@@ -21,11 +21,12 @@ const PORT = process.env.PORT || 3000;
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
 function checkGoogleSheetsSetup() {
-  const credsPath = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!credsPath || !fs.existsSync(credsPath)) {
+  if (!carregarCredenciais()) {
     console.warn(
-      '[sheets] ⚠️  credentials/service-account.json não encontrado — gravação no Google Sheets desativada ' +
-        '(leads continuam sendo salvos em data/leads.json). Siga a seção 3 do README para configurar.'
+      '[sheets] ⚠️  credencial do Google não encontrada — gravação no Google Sheets desativada ' +
+        '(leads continuam sendo salvos em data/leads.json). Defina GOOGLE_SERVICE_ACCOUNT_JSON ' +
+        '(caminho do arquivo, no Mac) ou GOOGLE_SERVICE_ACCOUNT_CREDENTIALS (conteúdo do JSON, em servidor). ' +
+        'Seção 3 do README.'
     );
     return;
   }

@@ -13,6 +13,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const { appendLeadRow, COLUNAS } = require('../src/sheets');
+const { carregarCredenciais } = require('../src/google-credenciais');
 const { getLead } = require('../src/state');
 
 const TELEFONE_TESTE = '5500000000000';
@@ -24,13 +25,19 @@ function conferirConfiguracao() {
   if (!fs.existsSync('.env')) {
     problemas.push('Não existe arquivo .env nesta pasta. Rode: cp .env.example .env');
   }
-  if (!creds) {
-    problemas.push('GOOGLE_SERVICE_ACCOUNT_JSON não está definido no .env.');
-  } else if (!fs.existsSync(creds)) {
-    problemas.push(
-      `O arquivo de credencial não existe em "${creds}".\n` +
-        '     Baixe a chave JSON da service account no Google Cloud Console e salve nesse caminho.'
-    );
+  if (!carregarCredenciais()) {
+    if (!creds && !process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS) {
+      problemas.push('GOOGLE_SERVICE_ACCOUNT_JSON não está definido no .env.');
+    } else if (creds && !fs.existsSync(creds)) {
+      problemas.push(
+        `O arquivo de credencial não existe em "${creds}".\n` +
+          '     Baixe a chave JSON da service account no Google Cloud Console e salve nesse caminho.'
+      );
+    } else {
+      problemas.push(
+        'A credencial do Google existe mas não deu pra ler (veja o aviso [google] acima).'
+      );
+    }
   }
   // Os valores de exemplo do .env.example passam pela checagem de "está
   // definido?" e depois quebram lá na frente com um erro da API que não diz
@@ -100,9 +107,10 @@ async function main() {
           '  Confira maiúscula, acento e espaço — tem que bater caractere por caractere.\n'
       );
     } else if (/permission|403|forbidden/i.test(err.message)) {
-      const email = JSON.parse(
-        fs.readFileSync(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, 'utf8')
-      ).client_email;
+      const cred = carregarCredenciais();
+      const email = cred && cred.keyFile
+        ? JSON.parse(fs.readFileSync(cred.keyFile, 'utf8')).client_email
+        : (cred && cred.credentials && cred.credentials.client_email) || '(service account)';
       console.error(
         '  Causa provável: a planilha não foi compartilhada com a service account.\n' +
           `  Compartilhe com ${email} como EDITOR.\n`
