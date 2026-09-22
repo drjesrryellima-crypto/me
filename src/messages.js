@@ -32,6 +32,13 @@ module.exports = {
   handoffCompra: () =>
     `Que bom que você quer dar esse passo. Vou te colocar em contato com o Dr. Jesrryel agora mesmo pra continuarmos essa conversa com todo o cuidado que ela merece. Já volto com você 💙`,
 
+  // Pergunta de preço é intenção de compra, mas é PERGUNTA — e pergunta espera
+  // resposta. Responder "que bom que você quer dar esse passo" a quem perguntou
+  // quanto custa não responde nada e soa como fuga. A assistente não pode falar
+  // valor, mas pode dizer isso, e dizer quem fala.
+  handoffValor: () =>
+    `Sobre valores quem te responde é o próprio Dr. Jesrryel — assim ele já te explica o que faz sentido pro seu caso, em vez de um número solto. Vou chamar ele agora. Já volto com você 💙`,
+
   followupD2: () =>
     `Separei um conteúdo que fala exatamente sobre o que você me contou — acho que vai fazer sentido pra você. Dá uma olhada com calma 💙\n[link do conteúdo]`,
 

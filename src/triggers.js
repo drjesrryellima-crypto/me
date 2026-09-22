@@ -50,8 +50,14 @@ const CRISIS_PHRASES = [
   'quero desistir de tudo',
 ];
 
-const BUYING_PHRASES = [
-  // valor / pagamento
+// Perguntar o preço é intenção de compra, mas de um tipo diferente de "quero
+// agendar": é uma PERGUNTA, e pergunta espera resposta. Tratar os dois com o
+// mesmo texto faz a assistente responder "que bom que você quer dar esse passo"
+// a quem perguntou quanto custa — que não responde nada e soa como fuga.
+//
+// A assistente não pode falar valor (é o Dr. Jesrryel quem trata disso), mas
+// pode dizer exatamente isso, em vez de mudar de assunto.
+const PRICE_PHRASES = [
   'quanto custa',
   'quanto ta custando',
   'quanto fica',
@@ -66,6 +72,15 @@ const BUYING_PHRASES = [
   'aceita pix',
   'pix',
   'cartao',
+  'qual o preco',
+  'qual preco',
+  'quanto sai',
+  'valor da consulta',
+  'preco da consulta',
+];
+
+const BUYING_PHRASES = [
+  ...PRICE_PHRASES,
   // agendamento / inicio
   'quero marcar',
   'quero agendar',
@@ -109,8 +124,10 @@ function matchesAny(text, phrases) {
 module.exports = {
   isCrisisSignal: (text) => matchesAny(text, CRISIS_PHRASES),
   isBuyingSignal: (text) => matchesAny(text, BUYING_PHRASES),
+  isPriceQuestion: (text) => matchesAny(text, PRICE_PHRASES),
   isOutOfScope: (text) => matchesAny(text, OUT_OF_SCOPE_PHRASES),
   CRISIS_PHRASES,
   BUYING_PHRASES,
+  PRICE_PHRASES,
   OUT_OF_SCOPE_PHRASES,
 };

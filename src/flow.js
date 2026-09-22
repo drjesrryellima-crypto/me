@@ -1,7 +1,7 @@
 const { getLead, saveLead, createLeadIfMissing } = require('./state');
 const messages = require('./messages');
 const { sendText } = require('./whatsapp');
-const { isCrisisSignal, isBuyingSignal, isOutOfScope } = require('./triggers');
+const { isCrisisSignal, isBuyingSignal, isPriceQuestion, isOutOfScope } = require('./triggers');
 const { sendHandoffAlert } = require('./alert');
 const { appendLeadRow } = require('./sheets');
 const assistente = require('./assistente');
@@ -93,10 +93,13 @@ async function handleIncomingMessage({ from, text, nome }) {
   // PRIORIDADE 2 — intenção de compra por palavra-chave. Também antes da IA:
   // "quanto custa" tem resposta fixa e não vale uma chamada de API.
   if (isBuyingSignal(textoOriginal)) {
+    const perguntouPreco = isPriceQuestion(textoOriginal);
     await encaminharParaHumano(from, {
-      texto: messages.handoffCompra(),
+      texto: perguntouPreco ? messages.handoffValor() : messages.handoffCompra(),
       priority: 'INTENÇÃO DE COMPRA',
-      notas: 'Sinal de intenção de compra detectado',
+      notas: perguntouPreco
+        ? 'Perguntou valor — encaminhado sem responder preço'
+        : 'Sinal de intenção de compra detectado',
       ultimaMensagem: textoOriginal,
     });
     return;
