@@ -8,6 +8,7 @@ const { jaProcessado } = require('./dedupe');
 const { carregarCredenciais } = require('./google-credenciais');
 const { diagnosticarVerificacao } = require('./verificacao');
 const { explicarErroMeta } = require('./erros-meta');
+const { descreverStatus } = require('./status-entrega');
 const assistente = require('./assistente');
 
 const app = express();
@@ -73,7 +74,17 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     const value = change?.value;
     const message = value?.messages?.[0];
 
-    if (!message) return; // pode ser um evento de status (entregue/lido), não uma mensagem nova
+    if (!message) {
+      // Não é mensagem nova — é o aviso de entrega. Ele diz se a mensagem que
+      // NÓS mandamos chegou de fato, e quando falha traz o motivo. Descartar
+      // isso calado deixava "a Meta aceitou o envio" e "a pessoa recebeu"
+      // indistinguíveis.
+      for (const linha of descreverStatus(value)) {
+        if (linha.includes('FALHOU')) console.error(`[webhook] ${linha}`);
+        else console.log(`[webhook] ${linha}`);
+      }
+      return;
+    }
 
     // A Meta reenvia o mesmo evento quando o webhook demora ou falha. Sem isso,
     // o reenvio avançaria a máquina de estados uma casa a mais e a resposta do
