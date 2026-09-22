@@ -1,6 +1,6 @@
 # Onde o projeto está
 
-Última atualização: 22/09/2026
+Última atualização: 22/09/2026 (tarde — o ciclo completo funcionou)
 
 Documento pra retomar sem depender de memória. O `README.md` explica como cada
 coisa funciona; este aqui diz **o que já está de pé, o que está travado e por quê**.
@@ -9,8 +9,13 @@ coisa funciona; este aqui diz **o que já está de pé, o que está travado e po
 
 ## Funcionando
 
+**O ciclo completo está de pé** (22/09/2026): mensagem no WhatsApp → webhook na
+Railway → assistente com IA → resposta entregue no celular. Provado ponta a ponta.
+
 | O quê | Como conferir |
 |---|---|
+| Servidor no ar | abrir `/health` — responde `{"ok":true}` |
+| Webhook da Meta | mandar `oi` pro +1 555 191 8167 |
 | Gravação no Google Sheets | `npm run testar-planilha` |
 | Assistente com IA (Claude) | `npm run conversar` |
 | Envio pelo WhatsApp | `npm run testar-whatsapp <numero>` |
@@ -32,6 +37,23 @@ no navegador — nada é enviado nem salvo depois que a aba fecha.
 
 Enquanto o 7075 não sai, o roteiro usa o **número de teste da Meta**. Quando
 liberar, é trocar `WHATSAPP_PHONE_NUMBER_ID` por `1336481699545220` e mais nada.
+
+## O nono dígito — leia antes de debugar entrega
+
+A Meta identifica número de celular brasileiro **sem o nono dígito**. O celular
++55 84 99968-7397 chega no webhook como `558499687397`, e é pra esse
+identificador que o bot responde — que é o comportamento correto.
+
+Só que a **lista de destinatários permitidos** (a do modo de teste) compara ao
+pé da letra. Cadastrar o número completo não basta: o envio é recusado com
+**131030**, dizendo que o destinatário não está na lista, mesmo estando.
+
+**A solução foi cadastrar a versão sem o nono dígito.** Parece número errado e
+não é.
+
+Isso só afeta o modo de teste — em produção não existe lista de permitidos. Mas
+enquanto o app não for publicado, todo número novo que for testar precisa entrar
+nas duas formas, ou só na versão sem o nono.
 
 ## Travado, e não é código
 
@@ -80,12 +102,28 @@ sem dedupe, um reenvio da Meta joga a resposta do lead na coluna errada.
 | App na Meta | `1364610259160568` — "Recomeco Constancia C..." (Em desenvolvimento) |
 | Número do consultório | +55 84 99838-7075 — ID `1336481699545220`, conta `964855363000657` |
 | Número de teste da Meta | +1 555 324 4505 — ID `1350488121473466` |
-| Celular pessoal (recebe teste) | +55 84 99668-7397 |
+| Celular pessoal (recebe teste) | +55 84 99968-7397 — na lista da Meta, cadastrado SEM o nono dígito: +55 84 9968-7397 |
+| Número que responde | +1 555 191 8167 — ID `1319832967883574` |
+| Servidor | https://me-production-a9ec.up.railway.app |
 | Planilha CRM | `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg` |
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
 ## Pendências
+
+**Urgente — vence sozinho**
+- O `WHATSAPP_TOKEN` na Railway é **temporário e dura 24h**. Quando vencer, o bot
+  volta a falhar com o código 190 e para de responder. Trocar pelo permanente
+  (via System User no Business Manager) é a próxima tarefa de verdade.
+
+**Antes de divulgar o número pra paciente**
+- Criar o volume persistente em `/data` na Railway. Sem ele, todo deploy apaga
+  o estado dos leads, o histórico das conversas e a memória de evento repetido.
+  Não atrapalhou o teste porque não havia nada a perder — com paciente real,
+  atrapalha.
+- Decidir se o log deve continuar registrando a mensagem do paciente na íntegra
+  (`[webhook] mensagem de <número>: "<texto>"`). Útil pra depurar, mas é
+  conteúdo de saúde mental num log de terceiro.
 
 **Da Meta (esperar ou abrir chamado)**
 - Verificação do 7075
