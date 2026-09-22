@@ -231,10 +231,18 @@ Copie do seu `.env` (menos `PORT` — a Railway injeta a dela) e some estas:
 | `WHATSAPP_APP_SECRET` | o App Secret da Meta | Agora a URL é pública e fixa — não é mais opcional |
 | `DASHBOARD_TOKEN` | uma senha longa | O painel expõe telefone e motivo de cada lead |
 
-O `GOOGLE_SERVICE_ACCOUNT_JSON` aponta pra um arquivo, e você não vai commitar
-credencial no repositório. Duas saídas: subir o JSON pro volume
-(`/data/service-account.json`) e apontar a variável pra lá, ou guardar o
-conteúdo do JSON numa variável e escrever o arquivo no boot.
+A credencial do Google é a única que não é um valor solto: no Mac ela é um
+**arquivo**. Na Railway não existe "colocar um arquivo lá dentro", então use a
+variável `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS` com o **conteúdo** do JSON — e
+deixe `GOOGLE_SERVICE_ACCOUNT_JSON` vazia:
+
+```bash
+# no Mac, pra gerar o valor a colar na Railway:
+base64 -i credentials/service-account.json | pbcopy
+```
+
+Cole o resultado em `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS`. Cru também funciona,
+mas base64 é uma linha só — não tem quebra de linha pro painel web estragar.
 
 ### 4. Apontar a Meta pra URL nova
 

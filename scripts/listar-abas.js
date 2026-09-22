@@ -6,12 +6,15 @@
 
 require('dotenv').config();
 const { google } = require('googleapis');
+const { opcoesDeAuth } = require('../src/google-credenciais');
 
 (async () => {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
+  const opcoes = opcoesDeAuth(['https://www.googleapis.com/auth/spreadsheets']);
+  if (!opcoes) {
+    console.error('\nNão achei a credencial do Google. Confira GOOGLE_SERVICE_ACCOUNT_JSON no .env.\n');
+    process.exit(1);
+  }
+  const auth = new google.auth.GoogleAuth(opcoes);
   const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
   const { data } = await sheets.spreadsheets.get({ spreadsheetId: process.env.GOOGLE_SHEET_ID });
 
