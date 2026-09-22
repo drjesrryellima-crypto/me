@@ -11,6 +11,8 @@
 
 const DICAS = {
   190: 'O token expirou ou é inválido. Os tokens temporários duram 24h — gere outro.',
+  131005:
+    'O token não tem permissão para esse número. Gerar um token novo no painel invalida o anterior, então o que está no servidor pode ter sido derrubado sem aviso. Isso vai continuar acontecendo enquanto o token for o temporário: a saída definitiva é o token permanente, via System User no Business Manager.',
   100: 'Algum parâmetro está errado. Confira o WHATSAPP_PHONE_NUMBER_ID.',
   131030:
     'O número de destino não está na lista de destinatários permitidos. Enquanto o app está em modo de teste, só dá pra mandar pra números cadastrados no painel da Meta.',

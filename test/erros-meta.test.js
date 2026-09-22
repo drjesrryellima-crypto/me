@@ -24,6 +24,13 @@ test('token expirado aponta as 24h do temporário', () => {
   assert.match(explicarErroMeta(erroDaMeta(190, 'Invalid OAuth token')), /24h/);
 });
 
+test('acesso negado aponta o token permanente, não só "gere outro"', () => {
+  const msg = explicarErroMeta(erroDaMeta(131005, 'Access denied'));
+  assert.match(msg, /permiss/i);
+  assert.match(msg, /permanente/);
+  assert.match(msg, /\[código 131005\]/);
+});
+
 test('código sem dica ainda devolve a mensagem da Meta e o número', () => {
   const msg = explicarErroMeta(erroDaMeta(999999, 'Algo novo que a Meta inventou'));
   assert.match(msg, /Algo novo que a Meta inventou/);
