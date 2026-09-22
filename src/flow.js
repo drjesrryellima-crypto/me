@@ -13,6 +13,15 @@ const { explicarErroMeta } = require('./erros-meta');
 async function enviar(to, texto) {
   try {
     await sendText(to, texto);
+    // Registrar o SUCESSO também, não só a falha. Sem esta linha, "nada no log"
+    // significa duas coisas incompatíveis — a Meta aceitou o envio, ou o código
+    // nem chegou a tentar — e não dá pra distinguir uma da outra. Foi
+    // exatamente onde a investigação travou ao ligar o webhook.
+    //
+    // Sem o conteúdo: são mensagens de paciente sobre saúde mental, e o log da
+    // Railway é visível pra quem tem acesso ao projeto. O tamanho basta pra
+    // saber que saiu a mensagem certa.
+    console.log(`[whatsapp] enviado para ${to} (${texto.length} caracteres)`);
   } catch (err) {
     // err.message aqui é "Request failed with status code 400" — o motivo real
     // (o código da Meta) vem no corpo da resposta. Este é o único lugar onde a
@@ -60,6 +69,11 @@ async function handleIncomingMessage({ from, text, nome }) {
   let lead = createLeadIfMissing(from);
   if (nome && !lead.nome) lead = saveLead(from, { nome });
   lead = registrarTurno(from, 'user', textoOriginal);
+
+  // O estado decide todo o resto — inclusive os casos em que a automação fica
+  // calada de propósito (HANDOFF/DESQUALIFICADO/CLIENTE). Sem isto no log, um
+  // silêncio esperado é indistinguível de uma falha.
+  console.log(`[flow] ${from} entrou em estado ${lead.state}`);
 
   // PRIORIDADE 1 — sinal de crise/risco, por palavra-chave.
   // Roda ANTES da IA, sempre, de propósito: esta checagem não depende de rede,
