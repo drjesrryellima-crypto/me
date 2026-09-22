@@ -5,6 +5,7 @@ const { isCrisisSignal, isBuyingSignal, isOutOfScope } = require('./triggers');
 const { sendHandoffAlert } = require('./alert');
 const { appendLeadRow } = require('./sheets');
 const assistente = require('./assistente');
+const { explicarErroMeta } = require('./erros-meta');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
@@ -13,7 +14,11 @@ async function enviar(to, texto) {
   try {
     await sendText(to, texto);
   } catch (err) {
-    console.error(`[whatsapp] falha ao enviar mensagem para ${to}: ${err.message}`);
+    // err.message aqui é "Request failed with status code 400" — o motivo real
+    // (o código da Meta) vem no corpo da resposta. Este é o único lugar onde a
+    // falha de envio aparece: o catch lá do server.js nunca vê, porque o erro
+    // morre aqui de propósito, pra não impedir o estado do lead de ser salvo.
+    console.error(`[whatsapp] falha ao enviar mensagem para ${to}: ${explicarErroMeta(err)}`);
   }
 }
 
