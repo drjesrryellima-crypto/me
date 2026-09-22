@@ -1,6 +1,6 @@
 # Onde o projeto está
 
-Última atualização: 21/09/2026
+Última atualização: 22/09/2026
 
 Documento pra retomar sem depender de memória. O `README.md` explica como cada
 coisa funciona; este aqui diz **o que já está de pé, o que está travado e por quê**.
@@ -19,6 +19,20 @@ coisa funciona; este aqui diz **o que já está de pé, o que está travado e po
 O bot grava na aba **Leads Bot** da planilha `CRM_Leads_Dr_Jesrryel - OFICIAL`,
 com a coluna Estágio falando o vocabulário da aba FUNIL.
 
+## Para colocar no ar
+
+Roteiro guiado, passo a passo, com link direto pra cada tela (sem passar pela
+lista de 5 apps / 5 contas / 5 planilhas) e o bloco de variáveis já montado:
+
+**https://claude.ai/artifact/NU6Y72iNY9yJaH6Wk9ZM84**
+
+Cobre: buscar os 5 valores → subir na Railway → registrar o webhook na Meta →
+mandar a primeira mensagem. Não precisa de terminal. O que for digitado lá fica
+no navegador — nada é enviado nem salvo depois que a aba fecha.
+
+Enquanto o 7075 não sai, o roteiro usa o **número de teste da Meta**. Quando
+liberar, é trocar `WHATSAPP_PHONE_NUMBER_ID` por `1336481699545220` e mais nada.
+
 ## Travado, e não é código
 
 O número do consultório **+55 84 99838-7075** não consegue ser verificado na
@@ -35,6 +49,29 @@ Nada disso se resolve mexendo no código. É estado da conta na Meta, e o caminh
 
 **O canal em si funciona:** uma mensagem de teste foi entregue com sucesso pelo
 botão "Enviar mensagem" do painel da Meta, usando outro número.
+
+## Qual repositório é este
+
+Existem dois repositórios de bot de WhatsApp na conta. **O projeto é o `me`.**
+
+| | `me` | `triagem-whatsapp` |
+|---|---|---|
+| Linguagem | Node.js | Python/Flask |
+| Tamanho | ~2.000 linhas, 52 testes | 263 linhas, 1 commit, sem teste |
+| Máquina de estados | sim | não |
+| Assinatura da Meta | sim | não |
+| Dedupe de reenvio | sim | não |
+| Follow-ups D+2/3/5/7 | sim | não |
+| CRM de 13 colunas + FUNIL | sim | grava linha solta |
+| Painel de leads | sim | não |
+
+O `triagem-whatsapp` (último push 19/09/2026) foi o protótipo anterior — a
+primeira tentativa, antes do fluxo com qualificação, nutrição e handoff. Fica
+guardado como histórico. **Na Railway, e em qualquer deploy, escolha `me`.**
+
+As duas ausências que mais pesam no protótipo não são de conforto: sem
+validação de assinatura, quem descobrir o endereço forja um alerta de crise;
+sem dedupe, um reenvio da Meta joga a resposta do lead na coluna errada.
 
 ## Identificadores
 
@@ -62,10 +99,11 @@ botão "Enviar mensagem" do painel da Meta, usando outro número.
   assistente pode dizer sobre saúde mental
 - Apagar a linha de teste (telefone `5500000000000`) da aba Leads Bot
 
-**Técnicas, quando a Meta liberar**
-- Webhook + ngrok pra receber mensagem
-- Deploy na Railway (ver seção "Deploy na Railway" do README) — o volume
-  persistente precisa existir ANTES do primeiro deploy
+**Técnicas — já dá pra fazer, não espera a Meta**
+- Deploy na Railway + webhook, pelo roteiro guiado lá em cima. O volume
+  persistente precisa existir ANTES de colar as variáveis
+- Trocar o token temporário da Meta (vence em 24h) pelo permanente, via
+  System User — só vale a pena depois que o resto estiver rodando
 - Corrigir o nome da aba `Leads Brutos Whatsapp` → `Leads Brutos WhatsApp`
   (com "A" maiúsculo), senão a automação antiga da Zapier não acha
 

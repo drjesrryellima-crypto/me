@@ -6,6 +6,7 @@ const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
 const { exigirAssinatura, avisarSeSemAppSecret } = require('./assinatura');
 const { jaProcessado } = require('./dedupe');
 const { carregarCredenciais } = require('./google-credenciais');
+const { diagnosticarVerificacao } = require('./verificacao');
 const assistente = require('./assistente');
 
 const app = express();
@@ -48,6 +49,8 @@ app.get('/webhook', (req, res) => {
     console.log('[webhook] verificação OK');
     return res.status(200).send(challenge);
   }
+
+  console.warn(`[webhook] verificação recusada: ${diagnosticarVerificacao(mode, token, VERIFY_TOKEN)}`);
   return res.sendStatus(403);
 });
 
@@ -92,6 +95,12 @@ app.listen(PORT, () => {
   checkGoogleSheetsSetup();
   avisarSeDesprotegido();
   avisarSeSemAppSecret();
+  if (!VERIFY_TOKEN) {
+    console.warn(
+      '[webhook] ⚠️  WHATSAPP_VERIFY_TOKEN não definido — a verificação do webhook na Meta vai falhar ' +
+        'com "não foi possível validar a URL de callback ou o token".'
+    );
+  }
   assistente.avisarSeDesligada();
   iniciarAgendador();
 });
