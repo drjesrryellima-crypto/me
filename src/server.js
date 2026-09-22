@@ -50,8 +50,15 @@ app.get('/webhook', (req, res) => {
     return res.status(200).send(challenge);
   }
 
-  console.warn(`[webhook] verificação recusada: ${diagnosticarVerificacao(mode, token, VERIFY_TOKEN)}`);
-  return res.sendStatus(403);
+  // O motivo vai no CORPO da resposta, não só no log. Quem configura o webhook
+  // está olhando o navegador, não o painel de logs do servidor — e mandar a
+  // pessoa caçar uma linha de log pra descobrir que sobrou um espaço custa um
+  // ciclo inteiro de ida e volta. O texto nunca contém o token (garantido por
+  // teste); no máximo diz o tamanho dele, o que não abre nada: forjar um POST
+  // ainda exige o WHATSAPP_APP_SECRET, que este caminho não toca.
+  const motivo = diagnosticarVerificacao(mode, token, VERIFY_TOKEN);
+  console.warn(`[webhook] verificação recusada: ${motivo}`);
+  return res.status(403).type('text/plain; charset=utf-8').send(`Verificação recusada: ${motivo}\n`);
 });
 
 // 2) Recebimento de mensagens
