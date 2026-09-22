@@ -9,6 +9,7 @@ const { carregarCredenciais } = require('./google-credenciais');
 const { diagnosticarVerificacao } = require('./verificacao');
 const { explicarErroMeta } = require('./erros-meta');
 const { descreverStatus } = require('./status-entrega');
+const { conferirNumeroQueRecebeu } = require('./destinatario');
 const assistente = require('./assistente');
 
 const app = express();
@@ -93,6 +94,12 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
       console.log(`[webhook] evento ${message.id} já processado — reenvio da Meta, ignorado.`);
       return;
     }
+
+    // Antes de processar: a mensagem chegou no número de onde o bot responde?
+    // Se não, a resposta é aceita pela Meta e recusada na entrega, com um
+    // código que aponta pro lugar errado.
+    const alerta = conferirNumeroQueRecebeu(value);
+    if (alerta) console.warn(`[webhook] ${alerta}`);
 
     const from = message.from; // número do lead
     const text = message.text?.body || '';
