@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const { handleIncomingMessage } = require('./flow');
 const { iniciarAgendador } = require('./followup');
@@ -114,11 +115,19 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
   }
 });
 
+// A Meta exige uma URL pública de política de privacidade pra publicar o app, e
+// o bot já tem endereço público — não precisa depender de site separado, que é
+// mais uma coisa pra expirar ou sair do ar sem ninguém notar.
+app.get('/privacidade', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'privacidade.html'));
+});
+
 app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
   console.log(`Webhook: http://localhost:${PORT}/webhook`);
+  console.log(`Política de privacidade: http://localhost:${PORT}/privacidade`);
   console.log(`Dashboard: http://localhost:${PORT}/dashboard?token=...`);
   checkGoogleSheetsSetup();
   avisarSeDesprotegido();
