@@ -1,6 +1,6 @@
 # Onde o projeto está
 
-Última atualização: 29/09/2026 (o número do consultório está no ar)
+Última atualização: 29/09/2026 (sistema completo — número no ar e alerta de crise no celular)
 
 Documento pra retomar sem depender de memória. O `README.md` explica como cada
 coisa funciona; este aqui diz **o que já está de pé, o que está travado e por quê**.
@@ -54,6 +54,31 @@ não é.
 Isso só afeta o modo de teste — em produção não existe lista de permitidos. Mas
 enquanto o app não for publicado, todo número novo que for testar precisa entrar
 nas duas formas, ou só na versão sem o nono.
+
+## O alerta de crise chega no celular
+
+Quando um paciente sinaliza risco, o bot acolhe, para de automatizar **e avisa o
+médico no Telegram** — com o telefone e a frase exata. Testado em 29/09/2026.
+
+Antes disso o alerta só existia no log: a peça que protege quem escreve às 3 da
+manhã dependia de alguém estar lendo servidor.
+
+| | |
+|---|---|
+| Bot do Telegram | `@alertas_jesrryel_bot` |
+| Variável | `TELEGRAM_BOT_TOKEN` na Railway |
+
+**Se um dia parar de chegar**, a ordem de checagem está no log, filtrando por
+`telegram`. O caso mais provável: o Telegram só aceita mensagem de um bot para
+quem já falou com ele — se o chat for apagado, é mandar `oi` para
+`@alertas_jesrryel_bot` de novo, e o destino é redescoberto sozinho.
+
+**Por que não SMS nem WhatsApp:** SMS pelo Zapier exige plano pago (testado), e
+o WhatsApp não entrega mensagem iniciada pelo negócio fora da janela de 24h —
+que às 3 da manhã está fechada. O Telegram não tem nenhuma das duas limitações.
+
+**A frase do paciente vai para o Telegram, não para o log.** O médico precisa
+das palavras exatas para julgar urgência; o log de um serviço de terceiro não.
 
 ## O número do consultório está no ar
 
