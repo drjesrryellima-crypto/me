@@ -14,6 +14,14 @@ test('troca o "status code 400" pelo motivo de verdade', () => {
   assert.doesNotMatch(msg, /status code 400/);
 });
 
+test('131030 não culpa o modo do app — a trava é do número de teste', () => {
+  const msg = explicarErroMeta(erroDaMeta(131030, 'Recipient phone number not in allowed list'));
+  assert.match(msg, /NÚMERO DE TESTE/);
+  assert.match(msg, /mesmo com o app publicado/);
+  // A frase antiga mandava publicar o app, o que não resolve nada.
+  assert.doesNotMatch(msg, /Enquanto o app está em modo de teste/);
+});
+
 test('nome de exibição não aprovado explica o que dá e o que não dá pra fazer', () => {
   const msg = explicarErroMeta(erroDaMeta(131037, 'Display name not approved'));
   assert.match(msg, /RECEBER/);
