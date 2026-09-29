@@ -21,10 +21,6 @@ const { explicarErroMeta } = require('./erros-meta');
 
 const TEMPLATE_LANGUAGE = process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'pt_BR';
 
-function textParams(...values) {
-  return values.map((value) => ({ type: 'text', text: String(value || '') }));
-}
-
 function diasDesde(dataIso) {
   const ms = Date.now() - new Date(dataIso).getTime();
   return Math.floor(ms / (1000 * 60 * 60 * 24));
@@ -41,18 +37,21 @@ async function checarFollowups() {
     const dias = diasDesde(lead.catalogoEnviadoEm);
     let enviados = lead.followupsEnviados || [];
 
-    // params: variáveis do corpo do template, na ordem em que aparecem nele
-    // (ex: {{1}}, {{2}}...). Ajuste depois de ver a estrutura real do template aprovado.
+    // Os quatro templates cadastrados não têm variável — ver TEMPLATES-WHATSAPP.md.
+    //
+    // Foi decisão, não preguiça. Variável é reprovação a mais na Meta (variável
+    // no começo ou no fim do corpo é recusa automática) e falha a mais no envio:
+    // lead que nunca disse o nome mandaria parâmetro vazio, e a Meta recusa a
+    // mensagem inteira. Pior: o D7 mandava literalmente "[preencher 3 horários]"
+    // para o paciente, porque ninguém nunca preencheu.
+    //
+    // Se um dia um template aprovado tiver {{1}}, é aqui que o valor entra —
+    // com textParams(), e garantindo que nenhum venha vazio.
     const etapas = [
       { dia: 2, chave: 'D2', template: process.env.WHATSAPP_TEMPLATE_D2, params: [] },
-      { dia: 3, chave: 'D3', template: process.env.WHATSAPP_TEMPLATE_D3, params: textParams(lead.nome) },
+      { dia: 3, chave: 'D3', template: process.env.WHATSAPP_TEMPLATE_D3, params: [] },
       { dia: 5, chave: 'D5', template: process.env.WHATSAPP_TEMPLATE_D5, params: [] },
-      {
-        dia: 7,
-        chave: 'D7',
-        template: process.env.WHATSAPP_TEMPLATE_D7,
-        params: textParams(lead.nome, '[preencher 3 horários]'),
-      },
+      { dia: 7, chave: 'D7', template: process.env.WHATSAPP_TEMPLATE_D7, params: [] },
     ];
 
     for (const etapa of etapas) {
