@@ -1,6 +1,6 @@
 # Onde o projeto está
 
-Última atualização: 29/09/2026 (token permanente e volume persistente)
+Última atualização: 29/09/2026 (app publicado, token permanente, volume persistente)
 
 Documento pra retomar sem depender de memória. O `README.md` explica como cada
 coisa funciona; este aqui diz **o que já está de pé, o que está travado e por quê**.
@@ -176,10 +176,23 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
   (`[webhook] mensagem de <número>: "<texto>"`). Útil pra depurar, mas é
   conteúdo de saúde mental num log de terceiro.
 
+## O app está publicado
+
+Publicado em 29/09/2026. Para isso a Meta exigiu três coisas que estavam
+vazias: categoria, ícone e **URL de política de privacidade** — esta última
+servida pelo próprio bot, em `/privacidade`.
+
+Publicar é pré-requisito de tudo que vem depois: sem isso, mesmo o 7075
+destravado não atenderia paciente.
+
+**O que publicar NÃO resolve:** o número de teste da Meta só fala com os números
+cadastrados na lista de destinatários permitidos. Essa trava é do número de
+teste, não do modo do app. Quem a levanta é ter um número próprio em produção —
+o 7075.
+
 **Da Meta (esperar ou abrir chamado)**
 - Verificação do 7075
 - Aprovação do nome de exibição
-- Publicar o app (hoje está "Em desenvolvimento", o que restringe tudo)
 - Forma de pagamento — sem ela os follow-ups D+2/3/5/7 não saem
 - Cadastrar os 4 templates de follow-up (os textos estão na aba TEMPLATES DE NUTRIÇÃO)
 
