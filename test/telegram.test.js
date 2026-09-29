@@ -180,6 +180,31 @@ test('o alerta de crise chega no Telegram com a frase do paciente', async () => 
   );
 });
 
+test('token configurado mas sem destino: não manda configurar o que já está', async () => {
+  await comApiFalsa({ getUpdates: { ok: true, result: [] } }, async () => {
+    delete process.env.HANDOFF_ALERT_WEBHOOK_URL;
+    delete require.cache[require.resolve('../src/alert')];
+    delete require.cache[require.resolve('../src/telegram')];
+    const { sendHandoffAlert } = require('../src/alert');
+
+    const avisos = [];
+    const logAntes = console.log;
+    const warnAntes = console.warn;
+    console.log = () => {};
+    console.warn = (...a) => avisos.push(a.join(' '));
+    try {
+      await sendHandoffAlert({ priority: 'RISCO/CRISE — URGENTE', phone: '55', ultimaMensagem: 'x' });
+      const texto = avisos.join('\n');
+      assert.match(texto, /NINGUÉM FOI AVISADO/);
+      assert.match(texto, /veja a linha \[telegram\] logo acima/);
+      assert.doesNotMatch(texto, /Defina TELEGRAM_BOT_TOKEN/);
+    } finally {
+      console.log = logAntes;
+      console.warn = warnAntes;
+    }
+  });
+});
+
 test('sem nenhum canal configurado, o log grita que ninguém foi avisado', async () => {
   const antesEnv = { ...process.env };
   delete process.env.TELEGRAM_BOT_TOKEN;
@@ -200,7 +225,9 @@ test('sem nenhum canal configurado, o log grita que ninguém foi avisado', async
       phone: '5584999990009',
       ultimaMensagem: 'nao aguento mais',
     });
-    assert.match(avisos.join('\n'), /NINGUÉM FOI AVISADO/);
+    const texto = avisos.join('\n');
+    assert.match(texto, /NINGUÉM FOI AVISADO/);
+    assert.match(texto, /Defina TELEGRAM_BOT_TOKEN/);
   } finally {
     console.log = logAntes;
     console.warn = warnAntes;
