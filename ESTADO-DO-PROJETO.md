@@ -59,6 +59,11 @@ nas duas formas, ou só na versão sem o nono.
 
 **+55 84 99838-7075** — recebe e envia pela API, testado em 29/09/2026.
 
+**Atende qualquer pessoa.** Confirmado com um número que nunca esteve em lista
+de permissão nenhuma: escreveu e foi respondido. É a diferença entre "funciona
+pra mim" e "funciona pra paciente" — e foi ela que o número de teste da Meta
+nunca conseguiu cruzar.
+
 | | |
 |---|---|
 | Conta (WABA) | `dr jesrryel` — `964855363000657` |

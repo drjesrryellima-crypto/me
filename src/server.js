@@ -106,7 +106,13 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     const text = message.text?.body || '';
     const nomePerfil = value.contacts?.[0]?.profile?.name;
 
-    console.log(`[webhook] mensagem de ${from}: "${text}"`);
+    // O tamanho, não o texto. A partir do momento em que paciente de verdade
+    // escreve, isto aqui é conteúdo de saúde mental — e o log da Railway é
+    // visível pra quem tem acesso ao projeto, e guardado por tempo que o
+    // consultório não controla. O que serve pra depurar é saber que a mensagem
+    // chegou, de quem e quando; o conteúdo vive na planilha e no painel, que
+    // são do médico e têm senha.
+    console.log(`[webhook] mensagem de ${from} (${text.length} caracteres)`);
     await handleIncomingMessage({ from, text, nome: nomePerfil });
   } catch (err) {
     // err.message sozinho é "Request failed with status code 400" — não diz a
