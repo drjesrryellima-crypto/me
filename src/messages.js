@@ -26,8 +26,21 @@ module.exports = {
   desqualificacaoGentil: () =>
     `Fico feliz que você tenha vindo até aqui, e quero ser honesto com você: pelo que você me contou, acho que você vai ser melhor cuidado por outro tipo de profissional/serviço. Se quiser, posso te ajudar a pensar no próximo passo, tá bem?`,
 
+  // A mensagem mais importante do sistema, e a única que pode chegar a alguém
+  // em risco imediato. Três decisões deliberadas:
+  //
+  // 1. Dá o 188 ANTES de falar do médico. O alerta chega no celular dele, mas
+  //    ele pode estar dormindo, dirigindo, atendendo. O CVV atende agora.
+  // 2. Não faz pergunta nenhuma. Quem está em crise não deve ter que responder
+  //    um robô para ser ajudado.
+  // 3. Diz explicitamente para não esperar pelo médico. A versão anterior
+  //    prometia "vou te colocar em contato com alguém agora mesmo" e deixava a
+  //    pessoa aguardando um contato que depende de um humano acordar.
   acolhimentoRisco: () =>
-    `Sinto muito que você esteja passando por isso. Você não precisa carregar isso sozinho(a), e eu vou te colocar em contato com alguém agora mesmo.`,
+    `Obrigado por me dizer isso. O que você está sentindo é sério, e você não precisa atravessar isso sozinho(a).\n\n` +
+    `Se a vontade de se machucar estiver presente agora, ligue *188*. É o CVV — gratuito, 24 horas, e tem uma pessoa pronta pra te ouvir neste momento.\n\n` +
+    `Se o risco for imediato, procure o pronto-socorro mais próximo ou ligue *192* (SAMU).\n\n` +
+    `O Dr. Jesrryel já foi avisado e vai te procurar. Mas não espere por isso se você precisar de ajuda agora — o 188 atende neste instante.`,
 
   handoffCompra: () =>
     `Que bom que você quer dar esse passo. Vou te colocar em contato com o Dr. Jesrryel agora mesmo pra continuarmos essa conversa com todo o cuidado que ela merece. Já volto com você 💙`,
