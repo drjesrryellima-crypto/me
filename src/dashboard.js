@@ -3,6 +3,9 @@ const crypto = require('crypto');
 const express = require('express');
 const { readAll, getLead, saveLead } = require('./state');
 const { planejarReativacao } = require('./reativar');
+const { planejarResposta, janela } = require('./responder');
+const { sendText } = require('./whatsapp');
+const { explicarErroMeta } = require('./erros-meta');
 const { ETAPA_QUALIFICACAO, ETAPA_FOLLOWUP, ROTULO_ESTADO, ehRisco } = require('./estados');
 
 const TOKEN = process.env.DASHBOARD_TOKEN;
@@ -146,6 +149,9 @@ function montarLinhas(leads) {
     catalogoEnviadoEm: lead.catalogoEnviadoEm || null,
     createdAt: lead.createdAt || null,
     updatedAt: lead.updatedAt || null,
+    // O painel precisa saber se ainda dá para responder em texto livre, senão
+    // oferece um campo que só vai falhar depois de o médico escrever.
+    janelaAberta: janela(lead).aberta,
   }));
 }
 
@@ -186,6 +192,46 @@ function criarRouter() {
       console.error('[dashboard] erro ao reativar:', err.message);
       return res.status(500).json({ erro: 'falha ao reativar o lead' });
     }
+  });
+
+  // Responde ao paciente PELO NÚMERO DO CONSULTÓRIO.
+  //
+  // Antes disto a única saída era o WhatsApp do celular do médico — outro
+  // número. A pessoa escrevia para o consultório e era procurada por um
+  // desconhecido. Aqui a resposta sai pelo mesmo número que ela procurou.
+  //
+  // O estado do lead NÃO muda: quem está em HANDOFF continua em HANDOFF, e a
+  // automação continua calada. Responder não é devolver a conversa para o bot
+  // — para isso existe o botão Reativar.
+  router.post('/api/leads/:phone/responder', exigirToken, async (req, res) => {
+    const phone = String(req.params.phone || '');
+    const plano = planejarResposta(getLead(phone), req.body && req.body.texto);
+    if (!plano.ok) {
+      return res.status(409).json({ erro: plano.motivo });
+    }
+
+    try {
+      await sendText(phone, plano.texto);
+    } catch (err) {
+      const explicado = explicarErroMeta(err);
+      console.error(`[dashboard] falha ao responder ${phone}: ${explicado}`);
+      return res.status(502).json({ erro: explicado });
+    }
+
+    // Só grava depois que a Meta aceitou: histórico com mensagem que não saiu
+    // faz o médico achar que respondeu.
+    //
+    // Entra como 'assistant' porque é o mesmo lado da conversa aos olhos da
+    // IA, com autor 'medico' para não se confundir com fala do bot. O texto
+    // em si não vai para o log — é conversa clínica.
+    const lead = getLead(phone) || {};
+    const historicoConversa = [
+      ...(lead.historicoConversa || []),
+      { role: 'assistant', content: plano.texto, autor: 'medico' },
+    ];
+    const salvo = saveLead(phone, { historicoConversa: historicoConversa.slice(-40) });
+    console.log(`[dashboard] resposta do médico enviada para ${phone} (${plano.texto.length} caracteres)`);
+    return res.json({ ok: true, lead: montarLinhas([salvo])[0] });
   });
 
   return router;

@@ -80,6 +80,32 @@ que às 3 da manhã está fechada. O Telegram não tem nenhuma das duas limitaç
 **A frase do paciente vai para o Telegram, não para o log.** O médico precisa
 das palavras exatas para julgar urgência; o log de um serviço de terceiro não.
 
+## Do alerta até a resposta: um toque
+
+O alerta do Telegram traz `Abrir conversa: https://wa.me/<numero>`. Um toque
+abre a conversa. Antes eram quatro passos (selecionar, copiar, abrir o
+WhatsApp, colar na busca) — de madrugada, às vezes num alerta de crise.
+
+O número vai **sem** o nono dígito, como a Meta manda. É o formato que o
+`wa.me` entende. Se alguém "consertar" o DDD ali, o link para de abrir — tem
+teste travando isso (`test/link-whatsapp.test.js`).
+
+**Mas o link abre no WhatsApp do celular, que é o 7397.** O paciente escreveu
+para o 7075. Para responder pelo número certo existe o botão **Responder** no
+painel (`/dashboard`): a mensagem sai pelo mesmo `WHATSAPP_PHONE_NUMBER_ID` da
+assistente, então para o paciente é a mesma conversa.
+
+Duas coisas que o Responder **não** faz, de propósito:
+
+- **não tira o lead do HANDOFF.** A automação continua calada. Devolver a
+  conversa para o bot é o outro botão, o Reativar.
+- **não grava nada se o envio falhar.** Histórico com mensagem que não saiu faz
+  o médico achar que respondeu.
+
+O botão só aparece dentro da janela de 24h da Meta. Fora dela o texto livre é
+recusado, e o painel diz isso em português em vez de devolver "131047
+re-engagement message".
+
 ## O número do consultório está no ar
 
 **+55 84 99838-7075** — recebe e envia pela API, testado em 29/09/2026.
