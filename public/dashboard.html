@@ -104,6 +104,38 @@
     white-space: nowrap;
   }
   button.reativar[disabled] { opacity: .55; cursor: default; }
+  button.responder {
+    font-size: 12px; padding: 4px 9px; min-height: 0;
+    white-space: nowrap; margin-right: 6px;
+  }
+  button.responder[disabled] { opacity: .55; cursor: default; }
+
+  /* --- caixa de resposta --- */
+  dialog.composer {
+    border: 1px solid var(--ring); border-radius: 12px;
+    background: var(--surface); color: inherit;
+    padding: 0; width: min(38rem, calc(100vw - 32px));
+  }
+  dialog.composer::backdrop { background: rgba(0,0,0,.45); }
+  .composer form { padding: 18px; margin: 0; }
+  .composer h2 { margin: 0 0 4px; font-size: 16px; }
+  .composer .quem { color: var(--ink-muted); font-size: 13px; margin: 0 0 12px; }
+  .composer textarea {
+    width: 100%; min-height: 8.5rem; resize: vertical;
+    font: inherit; font-size: 14px; line-height: 1.5;
+    padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--ring); background: var(--wash); color: inherit;
+  }
+  .composer textarea:focus-visible {
+    outline: 2px solid var(--series-1); outline-offset: 1px;
+  }
+  .composer .rodape-composer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 12px;
+  }
+  .composer .contador { color: var(--ink-muted); font-size: 12px; }
+  .composer .contador.estourou { color: var(--critical); }
+  .composer .erro-envio { color: var(--critical); font-size: 13px; margin: 10px 0 0; }
 
   /* --- painéis --- */
   .painel {
@@ -289,6 +321,26 @@
 </div>
 
 <div class="dica" id="dica" role="status" aria-live="polite"></div>
+
+<!-- Responder sai pelo número do consultório, não pelo celular do médico.
+     Um <dialog> nativo em vez de prompt(): prompt() é uma linha só, e a
+     resposta a alguém em sofrimento raramente cabe numa linha. -->
+<dialog class="composer" id="composer" aria-labelledby="composer-titulo">
+  <form method="dialog" id="composer-form">
+    <h2 id="composer-titulo">Responder pelo WhatsApp do consultório</h2>
+    <p class="quem" id="composer-quem"></p>
+    <textarea id="composer-texto" maxlength="4096"
+      placeholder="Escreva como você falaria com a pessoa."></textarea>
+    <p class="erro-envio" id="composer-erro" hidden></p>
+    <div class="rodape-composer">
+      <span class="contador" id="composer-contador">0 / 4096</span>
+      <span>
+        <button type="button" id="composer-cancelar">Cancelar</button>
+        <button type="button" id="composer-enviar">Enviar</button>
+      </span>
+    </div>
+  </form>
+</dialog>
 
 <script>
 (function () {
@@ -657,9 +709,14 @@
         '<td class="motivo">' + (esc(l.motivo) || '—') + '</td>' +
         '<td>' + (l.followupsEnviados.length ? esc(l.followupsEnviados.join(', ')) : '—') + '</td>' +
         '<td>' + esc(dataHora(l.updatedAt)) + '</td>' +
-        '<td>' + (PARADOS.indexOf(l.state) >= 0
-          ? '<button class="reativar" data-phone="' + esc(l.phone) + '">Reativar</button>'
-          : '') + '</td>' +
+        '<td>' +
+          (l.janelaAberta
+            ? '<button class="responder" data-phone="' + esc(l.phone) + '">Responder</button>'
+            : '') +
+          (PARADOS.indexOf(l.state) >= 0
+            ? '<button class="reativar" data-phone="' + esc(l.phone) + '">Reativar</button>'
+            : '') +
+        '</td>' +
       '</tr>';
     }).join('');
   }
@@ -708,6 +765,64 @@
         botao.disabled = false;
         botao.textContent = rotulo;
         alert('Não deu pra reativar: ' + (err.message || 'erro desconhecido'));
+      });
+  }
+
+  // ---------- responder pelo número do consultório ----------
+
+  var composerPhone = null;
+
+  function abrirComposer(phone) {
+    composerPhone = phone;
+    $('composer-quem').textContent = 'Para ' + phone + '. Sai pelo mesmo número que a pessoa procurou.';
+    $('composer-texto').value = '';
+    $('composer-erro').hidden = true;
+    $('composer-enviar').disabled = false;
+    $('composer-enviar').textContent = 'Enviar';
+    atualizarContador();
+    $('composer').showModal();
+    $('composer-texto').focus();
+  }
+
+  function atualizarContador() {
+    var n = $('composer-texto').value.length;
+    $('composer-contador').textContent = n + ' / 4096';
+    $('composer-contador').classList.toggle('estourou', n > 4096);
+  }
+
+  function enviarResposta() {
+    var texto = $('composer-texto').value.trim();
+    if (!texto) { $('composer-texto').focus(); return; }
+    var botao = $('composer-enviar');
+    botao.disabled = true;
+    botao.textContent = 'Enviando…';
+    $('composer-erro').hidden = true;
+
+    var url = '/api/leads/' + encodeURIComponent(composerPhone) + '/responder' +
+      (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto: texto })
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (corpo) {
+          if (!r.ok) throw new Error(corpo.erro || 'falha ao enviar');
+          return corpo;
+        });
+      })
+      .then(function () {
+        $('composer').close();
+        return carregar();
+      })
+      .catch(function (err) {
+        // O erro fica NA CAIXA, não num alert: o texto escrito continua ali,
+        // e quem acabou de escrever para alguém em sofrimento não deve perder
+        // o que escreveu por causa de uma falha de rede.
+        botao.disabled = false;
+        botao.textContent = 'Enviar';
+        $('composer-erro').textContent = err.message || 'erro desconhecido';
+        $('composer-erro').hidden = false;
       });
   }
 
@@ -767,8 +882,18 @@
 
   $('btn-atualizar').addEventListener('click', carregar);
 
+  $('composer-texto').addEventListener('input', atualizarContador);
+  $('composer-cancelar').addEventListener('click', function () { $('composer').close(); });
+  $('composer-enviar').addEventListener('click', enviarResposta);
+
   $('corpo-tabela').addEventListener('click', function (e) {
-    var botao = e.target.closest ? e.target.closest('button.reativar') : null;
+    if (!e.target.closest) return;
+    var responder = e.target.closest('button.responder');
+    if (responder) {
+      abrirComposer(responder.getAttribute('data-phone'));
+      return;
+    }
+    var botao = e.target.closest('button.reativar');
     if (!botao) return;
     var phone = botao.getAttribute('data-phone');
     if (!confirm('Reativar ' + phone + '?\n\nA assistente volta a responder essa pessoa. O histórico da conversa é preservado.')) return;

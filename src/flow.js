@@ -36,7 +36,12 @@ async function enviar(to, texto) {
 function registrarTurno(phone, role, content) {
   const lead = getLead(phone) || {};
   const historicoConversa = [...(lead.historicoConversa || []), { role, content }];
-  return saveLead(phone, { historicoConversa: historicoConversa.slice(-40) });
+  const campos = { historicoConversa: historicoConversa.slice(-40) };
+  // Marca quando o PACIENTE falou pela última vez. É o relógio da janela de
+  // 24h da Meta, e updatedAt não serve: ele também mexe quando quem escreve
+  // é o bot, o que faria a janela parecer aberta depois de fechada.
+  if (role === 'user') campos.ultimaEntradaEm = new Date().toISOString();
+  return saveLead(phone, campos);
 }
 
 async function encaminharParaHumano(from, { texto, priority, notas, state = 'HANDOFF', ultimaMensagem }) {
