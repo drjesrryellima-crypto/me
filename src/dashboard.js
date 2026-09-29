@@ -1,7 +1,8 @@
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
-const { readAll } = require('./state');
+const { readAll, getLead, saveLead } = require('./state');
+const { planejarReativacao } = require('./reativar');
 const { ETAPA_QUALIFICACAO, ETAPA_FOLLOWUP, ROTULO_ESTADO, ehRisco } = require('./estados');
 
 const TOKEN = process.env.DASHBOARD_TOKEN;
@@ -163,6 +164,27 @@ function criarRouter() {
     } catch (err) {
       console.error('[dashboard] erro ao montar dados:', err.message);
       res.status(500).json({ erro: 'falha ao ler os leads' });
+    }
+  });
+
+  // Devolve um lead parado (HANDOFF/DESQUALIFICADO/CLIENTE) para a automação.
+  // É POST porque muda estado, e fica atrás do mesmo token do painel: quem pode
+  // ver os leads pode reativá-los, ninguém mais.
+  router.post('/api/leads/:phone/reativar', exigirToken, (req, res) => {
+    try {
+      const phone = String(req.params.phone || '');
+      const plano = planejarReativacao(getLead(phone));
+      if (!plano.ok) {
+        return res.status(409).json({ erro: plano.motivo });
+      }
+      const lead = saveLead(phone, plano.campos);
+      console.log(
+        `[dashboard] lead ${phone} reativado (estava em ${plano.campos.estadoAntesDaReativacao})`
+      );
+      return res.json({ ok: true, lead: montarLinhas([lead])[0] });
+    } catch (err) {
+      console.error('[dashboard] erro ao reativar:', err.message);
+      return res.status(500).json({ erro: 'falha ao reativar o lead' });
     }
   });
 
