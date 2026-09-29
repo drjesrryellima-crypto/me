@@ -1,6 +1,6 @@
 # Onde o projeto está
 
-Última atualização: 22/09/2026 (tarde — o ciclo completo funcionou)
+Última atualização: 29/09/2026 (token permanente — o bot não cai mais sozinho)
 
 Documento pra retomar sem depender de memória. O `README.md` explica como cada
 coisa funciona; este aqui diz **o que já está de pé, o que está travado e por quê**.
@@ -95,6 +95,48 @@ As duas ausências que mais pesam no protótipo não são de conforto: sem
 validação de assinatura, quem descobrir o endereço forja um alerta de crise;
 sem dedupe, um reenvio da Meta joga a resposta do lead na coluna errada.
 
+## O token do WhatsApp
+
+**É permanente. Não vence.** Foi gerado em 29/09/2026 pelo usuário do sistema
+`AutomaçãoTriagem` (ID `61594312449393`), no Business Manager.
+
+Antes disso o projeto usava o token temporário do painel de desenvolvedor, e ele
+derrubou o bot duas vezes em um dia:
+
+| Código | O que aconteceu |
+|---|---|
+| `190` | venceu sozinho, 24h depois de gerado |
+| `131005` | foi invalidado ao gerar outro token no painel |
+
+Se um dia precisar gerar de novo (`business.facebook.com/settings/system-users`):
+
+1. Selecione `AutomaçãoTriagem`
+2. Confira que ele tem **os dois** ativos: o app `Recomeco Constancia CRM` **e** a
+   conta de WhatsApp. Só o app não basta — o token sai sem permissão pro número
+   e falha com 131005
+3. **Gerar token** → app `Recomeco Constancia CRM` → validade **Nunca** →
+   permissões `whatsapp_business_messaging` e `whatsapp_business_management`
+4. Do painel da Meta **direto** pra variável `WHATSAPP_TOKEN` na Railway. O token
+   aparece uma vez só, e não deve passar por chat, e-mail ou anotação
+
+**Anular tokens**, na mesma tela, invalida na hora — é o que fazer se um vazar.
+
+## Onde fica cada coisa
+
+A conta tem 6 projetos na Railway com nome sorteado, 7 contas de WhatsApp com
+nomes quase iguais e 5 apps na Meta. Boa parte do tempo perdido veio de abrir a
+coisa errada.
+
+| O quê | Onde |
+|---|---|
+| Serviço na Railway | projeto renomeado para `bot-whatsapp`, serviço `me`, endereço `me-production-a9ec.up.railway.app` |
+| Conta de WhatsApp em uso | `Test WhatsApp Business Account` |
+| Usuário do sistema | `AutomaçãoTriagem` |
+
+**Não apague as outras contas de WhatsApp.** Uma delas guarda o 7075, que está em
+análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
+(`[EM USO]`, `[AGUARDANDO META]`, `[NAO USAR]`) resolve a confusão sem risco.
+
 ## Identificadores
 
 | O quê | Valor |
@@ -110,11 +152,6 @@ sem dedupe, um reenvio da Meta joga a resposta do lead na coluna errada.
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
 ## Pendências
-
-**Urgente — vence sozinho**
-- O `WHATSAPP_TOKEN` na Railway é **temporário e dura 24h**. Quando vencer, o bot
-  volta a falhar com o código 190 e para de responder. Trocar pelo permanente
-  (via System User no Business Manager) é a próxima tarefa de verdade.
 
 **Antes de divulgar o número pra paciente**
 - Criar o volume persistente em `/data` na Railway. Sem ele, todo deploy apaga
@@ -140,8 +177,8 @@ sem dedupe, um reenvio da Meta joga a resposta do lead na coluna errada.
 **Técnicas — já dá pra fazer, não espera a Meta**
 - Deploy na Railway + webhook, pelo roteiro guiado lá em cima. O volume
   persistente precisa existir ANTES de colar as variáveis
-- Trocar o token temporário da Meta (vence em 24h) pelo permanente, via
-  System User — só vale a pena depois que o resto estiver rodando
+- Renomear as contas de WhatsApp com prefixo pra parar de confundir (sem apagar
+  nenhuma — veja "Onde fica cada coisa")
 - Corrigir o nome da aba `Leads Brutos Whatsapp` → `Leads Brutos WhatsApp`
   (com "A" maiúsculo), senão a automação antiga da Zapier não acha
 
