@@ -1,6 +1,6 @@
 # Onde o projeto está
 
-Última atualização: 29/09/2026 (app publicado, token permanente, volume persistente)
+Última atualização: 29/09/2026 (o número do consultório está no ar)
 
 Documento pra retomar sem depender de memória. O `README.md` explica como cada
 coisa funciona; este aqui diz **o que já está de pé, o que está travado e por quê**.
@@ -35,8 +35,8 @@ Cobre: buscar os 5 valores → subir na Railway → registrar o webhook na Meta 
 mandar a primeira mensagem. Não precisa de terminal. O que for digitado lá fica
 no navegador — nada é enviado nem salvo depois que a aba fecha.
 
-Enquanto o 7075 não sai, o roteiro usa o **número de teste da Meta**. Quando
-liberar, é trocar `WHATSAPP_PHONE_NUMBER_ID` por `1336481699545220` e mais nada.
+O roteiro foi escrito quando o sistema ainda usava o número de teste da Meta.
+Hoje o remetente é o 7075: `WHATSAPP_PHONE_NUMBER_ID` = `1336481699545220`.
 
 ## O nono dígito — leia antes de debugar entrega
 
@@ -55,22 +55,37 @@ Isso só afeta o modo de teste — em produção não existe lista de permitidos
 enquanto o app não for publicado, todo número novo que for testar precisa entrar
 nas duas formas, ou só na versão sem o nono.
 
-## Travado, e não é código
+## O número do consultório está no ar
 
-O número do consultório **+55 84 99838-7075** não consegue ser verificado na
-Meta. O que já aconteceu, em ordem:
+**+55 84 99838-7075** — recebe e envia pela API, testado em 29/09/2026.
 
-1. O número aparece na lista de remetentes do app, com nome e foto
-2. Envio por ele é recusado com **erro 131037** — nome de exibição não aprovado
-3. A conta dele (`964855363000657`) **não aparece** no Gerenciador do WhatsApp
-4. A tela de verificação **não envia** SMS nem faz ligação
-5. Tentativas mais recentes retornam **"WhatsApp indisponível"**
+| | |
+|---|---|
+| Conta (WABA) | `dr jesrryel` — `964855363000657` |
+| Phone Number ID | `1336481699545220` |
+| Nome visível | dr jesrryel |
+| Status | Conectado, qualidade Alta |
 
-Nada disso se resolve mexendo no código. É estado da conta na Meta, e o caminho
-é o suporte deles.
+O que destravou não foi uma ação isolada: entre 22 e 29/09 o app saiu de
+"em desenvolvimento" para publicado, ganhou política de privacidade e CNPJ, e a
+conta `964855363000657` — que não aparecia no Gerenciador do WhatsApp — voltou a
+aparecer, com o número conectado.
 
-**O canal em si funciona:** uma mensagem de teste foi entregue com sucesso pelo
-botão "Enviar mensagem" do painel da Meta, usando outro número.
+**Para o token permanente enxergar este número**, a conta `dr jesrryel` precisa
+estar atribuída ao usuário do sistema `AutomaçãoTriagem`, junto com o app. Só o
+app não basta: o envio falha com 131005, que fala de permissão sem dizer qual.
+
+### O que estava travado antes (histórico)
+
+Vale guardar, porque descreve um estado que pode voltar em outro número:
+
+1. O número aparecia na lista de remetentes, com nome e foto
+2. Envio recusado com **131037** — nome de exibição não aprovado
+3. A conta `964855363000657` **não aparecia** no Gerenciador do WhatsApp
+4. A tela de verificação não enviava SMS nem fazia ligação
+5. As últimas tentativas retornavam "WhatsApp indisponível"
+
+Nenhum desses sintomas tinha a ver com o código.
 
 ## Qual repositório é este
 
@@ -190,11 +205,19 @@ cadastrados na lista de destinatários permitidos. Essa trava é do número de
 teste, não do modo do app. Quem a levanta é ter um número próprio em produção —
 o 7075.
 
-**Da Meta (esperar ou abrir chamado)**
-- Verificação do 7075
-- Aprovação do nome de exibição
-- Forma de pagamento — sem ela os follow-ups D+2/3/5/7 não saem
-- Cadastrar os 4 templates de follow-up (os textos estão na aba TEMPLATES DE NUTRIÇÃO)
+**Da Meta — o que falta para os follow-ups**
+
+Os follow-ups D+2/3/5/7 são a única parte do sistema que ainda não funciona, e
+os dois motivos são de conta, não de código:
+
+- **Forma de pagamento.** Fora da janela de 24h a Meta só aceita template
+  pré-aprovado, e template é cobrado. Sem cartão cadastrado, não sai.
+- **Os 4 templates precisam ser cadastrados e aprovados.** Os textos estão na
+  aba TEMPLATES DE NUTRIÇÃO da planilha; os nomes aprovados vão nas variáveis
+  `WHATSAPP_TEMPLATE_D2/D3/D5/D7`.
+
+Enquanto as variáveis estiverem vazias, cada follow-up é pulado com aviso no
+log — o resto do sistema continua funcionando normalmente.
 
 **Do Dr. Jesrryel**
 - Revisar o system prompt de `src/assistente.js` — é ele quem aprova o que a
