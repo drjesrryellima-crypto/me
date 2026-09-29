@@ -1,4 +1,5 @@
 const axios = require('axios');
+const telegram = require('./telegram');
 
 const WEBHOOK_URL = process.env.HANDOFF_ALERT_WEBHOOK_URL;
 
@@ -26,6 +27,16 @@ async function sendHandoffAlert({ priority, phone, motivo, classificacao, ultima
   const paraOMedico = `${cabecalho}\nÚltima mensagem do lead: "${ultimaMensagem || ''}"`;
 
   console.log(`${cabecalho}\nÚltima mensagem do lead: (${(ultimaMensagem || '').length} caracteres)`);
+
+  // O Telegram é o canal que chega no celular. Vai em paralelo com o webhook —
+  // quem tiver os dois configurados recebe nos dois, e nenhum depende do outro.
+  const entregue = await telegram.enviarAlerta(paraOMedico);
+  if (!entregue && !WEBHOOK_URL) {
+    console.warn(
+      `[alert] ⚠️  NINGUÉM FOI AVISADO deste ${priority}. O alerta existe só neste log. ` +
+        'Configure TELEGRAM_BOT_TOKEN.'
+    );
+  }
 
   if (WEBHOOK_URL) {
     try {

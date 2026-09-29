@@ -11,6 +11,7 @@ const { diagnosticarVerificacao } = require('./verificacao');
 const { explicarErroMeta } = require('./erros-meta');
 const { descreverStatus } = require('./status-entrega');
 const { conferirNumeroQueRecebeu } = require('./destinatario');
+const telegram = require('./telegram');
 const assistente = require('./assistente');
 
 const app = express();
@@ -145,5 +146,6 @@ app.listen(PORT, () => {
     );
   }
   assistente.avisarSeDesligada();
+  telegram.avisarSeDesligado();
   iniciarAgendador();
 });
