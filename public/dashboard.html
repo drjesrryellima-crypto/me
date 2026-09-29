@@ -97,6 +97,13 @@
   button:focus-visible, select:focus-visible, input:focus-visible {
     outline: 2px solid var(--series-1); outline-offset: 1px;
   }
+  /* Menor e mais discreto que os botões de cima: aparece em cada linha de lead
+     parado, e não deve competir com o conteúdo da tabela. */
+  button.reativar {
+    font-size: 12px; padding: 4px 9px; min-height: 0;
+    white-space: nowrap;
+  }
+  button.reativar[disabled] { opacity: .55; cursor: default; }
 
   /* --- painéis --- */
   .painel {
@@ -269,7 +276,7 @@
         <thead>
           <tr>
             <th>Telefone</th><th>Nome</th><th>Estado</th><th>Classificação</th>
-            <th>Motivo</th><th>Follow-ups</th><th>Atualizado</th>
+            <th>Motivo</th><th>Follow-ups</th><th>Atualizado</th><th></th>
           </tr>
         </thead>
         <tbody id="corpo-tabela"></tbody>
@@ -650,6 +657,9 @@
         '<td class="motivo">' + (esc(l.motivo) || '—') + '</td>' +
         '<td>' + (l.followupsEnviados.length ? esc(l.followupsEnviados.join(', ')) : '—') + '</td>' +
         '<td>' + esc(dataHora(l.updatedAt)) + '</td>' +
+        '<td>' + (PARADOS.indexOf(l.state) >= 0
+          ? '<button class="reativar" data-phone="' + esc(l.phone) + '">Reativar</button>'
+          : '') + '</td>' +
       '</tr>';
     }).join('');
   }
@@ -674,6 +684,32 @@
   }
 
   // ---------- dados ----------
+
+  // Estados em que a automação fica calada. O bot não sai deles sozinho por
+  // decisão do Dr. Jesrryel: uma automação reaparecendo no meio de um
+  // acompanhamento é pior que o silêncio. Então a volta é um clique dele.
+  var PARADOS = ['HANDOFF', 'DESQUALIFICADO', 'CLIENTE'];
+
+  function reativar(phone, botao) {
+    var rotulo = botao.textContent;
+    botao.disabled = true;
+    botao.textContent = 'Reativando…';
+    var url = '/api/leads/' + encodeURIComponent(phone) + '/reativar' +
+      (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
+    fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' } })
+      .then(function (r) {
+        return r.json().then(function (corpo) {
+          if (!r.ok) throw new Error(corpo.erro || 'falha ao reativar');
+          return corpo;
+        });
+      })
+      .then(function () { return carregar(); })
+      .catch(function (err) {
+        botao.disabled = false;
+        botao.textContent = rotulo;
+        alert('Não deu pra reativar: ' + (err.message || 'erro desconhecido'));
+      });
+  }
 
   function carregar() {
     var url = '/api/leads' + (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
@@ -730,6 +766,14 @@
   });
 
   $('btn-atualizar').addEventListener('click', carregar);
+
+  $('corpo-tabela').addEventListener('click', function (e) {
+    var botao = e.target.closest ? e.target.closest('button.reativar') : null;
+    if (!botao) return;
+    var phone = botao.getAttribute('data-phone');
+    if (!confirm('Reativar ' + phone + '?\n\nA assistente volta a responder essa pessoa. O histórico da conversa é preservado.')) return;
+    reativar(phone, botao);
+  });
   ligarDicas(document.body);
 
   // Redesenha os SVGs no tamanho real do container (fonte não estica junto).
