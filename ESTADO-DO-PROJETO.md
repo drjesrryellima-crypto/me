@@ -1,6 +1,6 @@
 # Onde o projeto está
 
-Última atualização: 29/09/2026 (token permanente — o bot não cai mais sozinho)
+Última atualização: 29/09/2026 (token permanente e volume persistente)
 
 Documento pra retomar sem depender de memória. O `README.md` explica como cada
 coisa funciona; este aqui diz **o que já está de pé, o que está travado e por quê**.
@@ -95,6 +95,24 @@ As duas ausências que mais pesam no protótipo não são de conforto: sem
 validação de assinatura, quem descobrir o endereço forja um alerta de crise;
 sem dedupe, um reenvio da Meta joga a resposta do lead na coluna errada.
 
+## O volume persistente
+
+Criado e **verificado** em 29/09/2026. Montado em `/data`, que é para onde
+`DATA_DIR` aponta.
+
+A verificação não foi por log: foi uma conversa em andamento que sobreviveu a um
+redeploy no meio dela — a assistente continuou de onde parou, em vez de
+cumprimentar como se fosse a primeira vez. É o teste que mede o que o paciente
+sentiria.
+
+Sem ele, todo deploy apagava o estado dos leads, o histórico das conversas e a
+memória de evento já processado.
+
+**Um teste que NÃO serve:** olhar se `[flow] ... entrou em estado` mudou depois
+de um "Oi". Quando a IA está conduzindo, um cumprimento não muda o estado de
+propósito — ele fica em `NOVO` até o lead contar alguma coisa. `NOVO` ali não
+distingue volume quebrado de estado que não mudou.
+
 ## O token do WhatsApp
 
 **É permanente. Não vence.** Foi gerado em 29/09/2026 pelo usuário do sistema
@@ -154,10 +172,6 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 ## Pendências
 
 **Antes de divulgar o número pra paciente**
-- Criar o volume persistente em `/data` na Railway. Sem ele, todo deploy apaga
-  o estado dos leads, o histórico das conversas e a memória de evento repetido.
-  Não atrapalhou o teste porque não havia nada a perder — com paciente real,
-  atrapalha.
 - Decidir se o log deve continuar registrando a mensagem do paciente na íntegra
   (`[webhook] mensagem de <número>: "<texto>"`). Útil pra depurar, mas é
   conteúdo de saúde mental num log de terceiro.
