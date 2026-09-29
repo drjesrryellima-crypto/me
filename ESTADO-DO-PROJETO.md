@@ -175,8 +175,6 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 - Apagar a linha de teste (telefone `5500000000000`) da aba Leads Bot
 
 **Técnicas — já dá pra fazer, não espera a Meta**
-- Deploy na Railway + webhook, pelo roteiro guiado lá em cima. O volume
-  persistente precisa existir ANTES de colar as variáveis
 - Renomear as contas de WhatsApp com prefixo pra parar de confundir (sem apagar
   nenhuma — veja "Onde fica cada coisa")
 - Corrigir o nome da aba `Leads Brutos Whatsapp` → `Leads Brutos WhatsApp`
