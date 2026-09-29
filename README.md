@@ -402,14 +402,15 @@ a API exige o uso de um **Message Template pré-aprovado** em vez de texto livre
 
 Os follow-ups (`src/followup.js`) já usam `sendTemplate` em vez de texto livre, então você
 só vai precisar:
-1. Cadastrar os textos de follow-up como templates no Meta Business Manager. Os textos em
-   `src/messages.js` (`followupD2`, `followupD3`, `followupD5`, `followupD7`) servem de
-   referência de conteúdo — `followupD3` e `followupD7` têm variáveis (nome, horários) que
-   viram os parâmetros `{{1}}`, `{{2}}` etc. do template.
+1. Cadastrar os quatro templates. **Os textos prontos pra colar estão em
+   [`TEMPLATES-WHATSAPP.md`](TEMPLATES-WHATSAPP.md)**, com nome, categoria e o porquê de cada
+   decisão. Nenhum deles tem variável, de propósito — o documento explica.
 2. Esperar a aprovação (geralmente rápida, mas não é instantânea).
 3. Colocar o nome de cada template aprovado em `WHATSAPP_TEMPLATE_D2` / `_D3` / `_D5` / `_D7`
    no `.env` (veja `.env.example`). Enquanto uma dessas variáveis não estiver preenchida, o
    follow-up correspondente fica pulado (com aviso no log) em vez de falhar.
+4. Cadastrar forma de pagamento na conta de WhatsApp Business. Sem isso, template aprovado
+   não envia (erro `131042`).
 
 ## Antes de ir pra produção — checklist mínimo
 
