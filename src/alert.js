@@ -32,10 +32,13 @@ async function sendHandoffAlert({ priority, phone, motivo, classificacao, ultima
   // quem tiver os dois configurados recebe nos dois, e nenhum depende do outro.
   const entregue = await telegram.enviarAlerta(paraOMedico);
   if (!entregue && !WEBHOOK_URL) {
-    console.warn(
-      `[alert] ⚠️  NINGUÉM FOI AVISADO deste ${priority}. O alerta existe só neste log. ` +
-        'Configure TELEGRAM_BOT_TOKEN.'
-    );
+    // O que fazer depende de onde parou. Mandar "configure o token" para quem
+    // já configurou o token empurra para o lugar errado — e num alerta de crise
+    // o tempo perdido é o que mais custa.
+    const comoResolver = telegram.configurado()
+      ? 'O token está configurado, mas a mensagem não saiu — veja a linha [telegram] logo acima.'
+      : 'Nenhum canal está configurado. Defina TELEGRAM_BOT_TOKEN.';
+    console.warn(`[alert] ⚠️  NINGUÉM FOI AVISADO deste ${priority}. ${comoResolver}`);
   }
 
   if (WEBHOOK_URL) {
