@@ -118,6 +118,29 @@
      que o médico precisa achar primeiro quando abre o painel. */
   tr.esperando td.principal { box-shadow: inset 3px 0 0 var(--critical); }
 
+  /* --- agenda --- */
+  .agenda-tabela { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .agenda-tabela th, .agenda-tabela td {
+    text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--ring);
+  }
+  .agenda-tabela th { color: var(--ink-2); font-weight: 600; }
+  .agenda-tabela input[type="time"] {
+    font: inherit; font-size: 13px; padding: 3px 6px;
+    border: 1px solid var(--ring); border-radius: 6px;
+    background: var(--surface); color: inherit; width: 7.5em;
+  }
+  .agenda-dia { white-space: nowrap; }
+  .agenda-rodape {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 14px; flex-wrap: wrap;
+  }
+  .agenda-previa {
+    color: var(--ink-2); font-size: 13.5px; font-style: italic;
+    flex: 1 1 18rem; min-width: 0;
+  }
+  .agenda-aviso { font-size: 13px; margin: 10px 0 0; }
+  .agenda-aviso.erro { color: var(--critical); }
+
   /* --- caixa de resposta --- */
   dialog.composer {
     border: 1px solid var(--ring); border-radius: 12px;
@@ -265,6 +288,22 @@
       <button id="btn-atualizar" type="button">Atualizar</button>
     </div>
   </header>
+
+  <!-- O que a assistente responde quando perguntam "que horas vocês atendem".
+       Ela fala em FAIXAS, nunca em vagas: não enxerga a agenda real. -->
+  <section class="painel" id="painel-agenda" style="margin-bottom:18px">
+    <h2 style="margin:0 0 4px;font-size:16px">Horários que a assistente informa</h2>
+    <p style="margin:0 0 12px;color:var(--ink-2);font-size:13.5px">
+      Ela diz as faixas, nunca uma vaga específica — quem acerta o horário é você.
+      Deixe em branco o turno em que não atende.
+    </p>
+    <div style="overflow-x:auto"><table class="agenda-tabela" id="agenda-tabela"></table></div>
+    <p class="agenda-aviso" id="agenda-aviso" hidden></p>
+    <div class="agenda-rodape">
+      <span class="agenda-previa" id="agenda-previa"></span>
+      <button type="button" id="agenda-salvar">Salvar horários</button>
+    </div>
+  </section>
 
   <div id="alerta-seguranca"></div>
   <div id="alerta-risco"></div>
@@ -881,6 +920,115 @@
       });
   }
 
+  // ---------- horários que a assistente informa ----------
+
+  var DIAS_AGENDA = [];
+
+  function comToken(caminho) {
+    return caminho + (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
+  }
+
+  function linhaAgenda(dia, faixas) {
+    function campo(turno, posicao) {
+      var faixa = faixas[turno];
+      var valor = faixa && faixa[posicao] ? faixa[posicao] : '';
+      return '<input type="time" data-dia="' + dia.chave + '" data-turno="' + turno +
+        '" data-pos="' + posicao + '" value="' + valor + '">';
+    }
+    return '<tr>' +
+      '<td class="agenda-dia">' + esc(dia.nome) + '</td>' +
+      '<td>' + campo('manha', 0) + ' às ' + campo('manha', 1) + '</td>' +
+      '<td>' + campo('tarde', 0) + ' às ' + campo('tarde', 1) + '</td>' +
+      '</tr>';
+  }
+
+  function renderAgenda(dados) {
+    DIAS_AGENDA = dados.dias;
+    $('agenda-tabela').innerHTML =
+      '<tr><th>Dia</th><th>Manhã</th><th>Tarde</th></tr>' +
+      dados.dias.map(function (d) { return linhaAgenda(d, dados.agenda[d.chave] || {}); }).join('');
+    $('agenda-previa').textContent = 'A assistente diz: "' + dados.descricao + '"';
+  }
+
+  // Turno com só uma ponta preenchida é meio-caminho, não horário. Mandar
+  // assim o servidor recusaria com uma mensagem genérica; aqui dá pra dizer
+  // exatamente qual dia está pela metade.
+  function coletarAgenda() {
+    var agenda = {};
+    var incompleto = null;
+    DIAS_AGENDA.forEach(function (d) { agenda[d.chave] = { manha: null, tarde: null }; });
+
+    DIAS_AGENDA.forEach(function (d) {
+      ['manha', 'tarde'].forEach(function (turno) {
+        var campos = $('agenda-tabela').querySelectorAll(
+          'input[data-dia="' + d.chave + '"][data-turno="' + turno + '"]'
+        );
+        var inicio = campos[0].value;
+        var fim = campos[1].value;
+        if (!inicio && !fim) return;
+        if (!inicio || !fim) {
+          if (!incompleto) {
+            incompleto = d.nome + ' (' + (turno === 'manha' ? 'manhã' : 'tarde') +
+              ') está com só um horário preenchido';
+          }
+          return;
+        }
+        agenda[d.chave][turno] = [inicio, fim];
+      });
+    });
+
+    return { agenda: agenda, incompleto: incompleto };
+  }
+
+  function avisoAgenda(texto, ehErro) {
+    var alvo = $('agenda-aviso');
+    alvo.textContent = texto || '';
+    alvo.hidden = !texto;
+    alvo.classList.toggle('erro', Boolean(ehErro));
+  }
+
+  function salvarAgenda() {
+    var coletado = coletarAgenda();
+    if (coletado.incompleto) {
+      avisoAgenda(coletado.incompleto, true);
+      return;
+    }
+    var botao = $('agenda-salvar');
+    botao.disabled = true;
+    botao.textContent = 'Salvando…';
+    avisoAgenda('');
+
+    fetch(comToken('/api/agenda'), {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agenda: coletado.agenda })
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (corpo) {
+          if (!r.ok) throw new Error(corpo.erro || 'falha ao salvar');
+          return corpo;
+        });
+      })
+      .then(function (corpo) {
+        $('agenda-previa').textContent = 'A assistente diz: "' + corpo.descricao + '"';
+        avisoAgenda(corpo.aviso, false);
+      })
+      .catch(function (err) { avisoAgenda(err.message || 'erro desconhecido', true); })
+      .then(function () {
+        botao.disabled = false;
+        botao.textContent = 'Salvar horários';
+      });
+  }
+
+  function carregarAgenda() {
+    return fetch(comToken('/api/agenda'), { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(renderAgenda)
+      .catch(function () {
+        $('painel-agenda').hidden = true;
+      });
+  }
+
   function carregar() {
     var url = '/api/leads' + (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
     return fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -968,7 +1116,12 @@
     timerResize = setTimeout(function () { if (dados && !erroAtual) renderGraficos(dados.resumo); }, 120);
   });
 
+  $('agenda-salvar').addEventListener('click', salvarAgenda);
+
   carregar();
+  carregarAgenda();
+  // A agenda NÃO entra no recarregamento automático: sobrescreveria o que o
+  // médico está digitando no meio da edição.
   setInterval(carregar, 60000);
 })();
 </script>

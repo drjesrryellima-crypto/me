@@ -1,7 +1,8 @@
 const { getLead, saveLead, createLeadIfMissing } = require('./state');
 const messages = require('./messages');
 const { sendText } = require('./whatsapp');
-const { isCrisisSignal, isBuyingSignal, isPriceQuestion, isOutOfScope } = require('./triggers');
+const { isCrisisSignal, isBuyingSignal, isPrecoDoPlano, isPedidoDeAgendamento, isOutOfScope } =
+  require('./triggers');
 const { sendHandoffAlert } = require('./alert');
 const telegram = require('./telegram');
 const { planejarAvisoDeRetorno, montarTexto, camposDeRetorno } = require('./retorno-handoff');
@@ -154,16 +155,22 @@ async function handleIncomingMessage({ from, text, nome }) {
     return;
   }
 
-  // PRIORIDADE 2 — intenção de compra por palavra-chave. Também antes da IA:
-  // "quanto custa" tem resposta fixa e não vale uma chamada de API.
+  // PRIORIDADE 2 — o que a assistente NÃO resolve, por palavra-chave.
+  //
+  // Esta lista encolheu muito. Antes pegava "pix", "cartao", "quanto custa" e
+  // "qual o endereco" — ou seja, encaminhava quem só queria uma informação que
+  // o consultório tem. Agora a assistente responde isso (ver consultorio.js), e
+  // aqui ficou só o que é de fato do humano: fechar um programa, e marcar.
   if (isBuyingSignal(textoOriginal)) {
-    const perguntouPreco = isPriceQuestion(textoOriginal);
+    const precoDoPlano = isPrecoDoPlano(textoOriginal);
     await encaminharParaHumano(from, {
-      texto: perguntouPreco ? messages.handoffValor() : messages.handoffCompra(),
+      texto: precoDoPlano ? messages.handoffValor() : messages.handoffAgendamento(),
       priority: 'INTENÇÃO DE COMPRA',
-      notas: perguntouPreco
-        ? 'Perguntou valor — encaminhado sem responder preço'
-        : 'Sinal de intenção de compra detectado',
+      notas: precoDoPlano
+        ? 'Perguntou o valor do programa de acompanhamento'
+        : isPedidoDeAgendamento(textoOriginal)
+          ? 'Quer marcar consulta'
+          : 'Interesse em fechar programa de acompanhamento',
       ultimaMensagem: textoOriginal,
     });
     return;
@@ -238,6 +245,19 @@ async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
       texto: messages.handoffCompra(),
       priority: 'INTENÇÃO DE COMPRA',
       notas: 'Intenção de compra sinalizada pela assistente',
+      ultimaMensagem: textoOriginal,
+    });
+    return;
+  }
+
+  // A assistente admitiu que não sabe. Vale um handoff de prioridade mais
+  // baixa que compra: é dúvida, não venda — mas continua sendo alguém
+  // esperando resposta, e o médico precisa saber o que foi perguntado.
+  if (ia.intencao === 'nao_sei') {
+    await encaminharParaHumano(from, {
+      texto: messages.handoffNaoSei(),
+      priority: 'DÚVIDA QUE A ASSISTENTE NÃO SOUBE',
+      notas: 'A assistente não tinha a informação e não inventou',
       ultimaMensagem: textoOriginal,
     });
     return;

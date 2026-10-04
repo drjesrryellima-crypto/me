@@ -57,57 +57,66 @@ const CRISIS_PHRASES = [
 //
 // A assistente não pode falar valor (é o Dr. Jesrryel quem trata disso), mas
 // pode dizer exatamente isso, em vez de mudar de assunto.
-const PRICE_PHRASES = [
-  'quanto custa',
-  'quanto ta custando',
-  'quanto fica',
-  'qual o valor',
-  'qual valor',
-  'me passa o valor',
-  'quanto e',
-  'tem desconto',
-  'em quantas vezes',
-  'tem como parcelar',
-  'parcelar',
-  'aceita pix',
-  'pix',
-  'cartao',
-  'qual o preco',
-  'qual preco',
-  'quanto sai',
-  'valor da consulta',
-  'preco da consulta',
+// Até 04/10/2026 esta lista era um alçapão. "pix", "cartao" e "parcelar"
+// sozinhos jogavam a pessoa direto no colo do médico — alguém escrevia
+// "aceita pix?" e virava handoff. Somado à proibição de falar preço no prompt,
+// o resultado era um bot que não respondia nada concreto e um médico virando o
+// FAQ do próprio consultório.
+//
+// Agora a assistente SABE o valor avulso, o endereço, as faixas de horário e
+// as formas de pagamento (ver src/consultorio.js), então essas perguntas são
+// respondidas, não encaminhadas.
+//
+// O que sobrou aqui é só o que não dá pra errar: quem quer FECHAR um programa
+// de acompanhamento, ou quer efetivamente marcar. Tudo o mais a IA decide com
+// o contexto da conversa, que é onde ela é melhor que uma lista de palavras.
+const PRECO_PLANO_PHRASES = [
+  // o único preço que a assistente não diz
+  'quanto custa o recomeco',
+  'quanto custa o constancia',
+  'quanto custa o programa',
+  'quanto custa o acompanhamento',
+  'valor do recomeco',
+  'valor do constancia',
+  'valor do programa',
+  'valor do acompanhamento',
+  'preco do recomeco',
+  'preco do constancia',
+  'preco do programa',
+  'preco do acompanhamento',
+  'quanto e o recomeco',
+  'quanto e o constancia',
 ];
 
-const BUYING_PHRASES = [
-  ...PRICE_PHRASES,
-  // agendamento / inicio
+// Querer FECHAR é diferente de perguntar o preço: a pessoa já decidiu. As duas
+// coisas vão para o médico, mas com texto diferente — e misturá-las numa lista
+// só fazia "quero fazer o Recomeço" ser tratado como pergunta de valor.
+const FECHAMENTO_PHRASES = [
+  'quero fazer o recomeco',
+  'quero fazer o constancia',
+  'quero contratar',
+  'quero fechar',
+  'quero assinar',
+  'onde eu assino',
+  'quero comecar o acompanhamento',
+];
+
+// Marcar é do humano: o médico escolheu que o bot informa as faixas e não
+// agenda. Quem já quer marcar não deve ouvir "ele atende de manhã" de novo.
+const AGENDAMENTO_PHRASES = [
   'quero marcar',
   'quero agendar',
   'gostaria de agendar',
+  'gostaria de marcar',
   'pode marcar',
-  'tem vaga',
-  'quando posso comecar',
-  'como faco pra comecar',
-  'quero comecar hoje',
+  'pode agendar',
   'vamos marcar',
-  'e hoje que da pra comecar',
-  // confirmacao direta
-  'quero fazer o recomeco',
-  'quero fazer o constancia',
-  'bora comecar',
-  'pode me colocar',
-  'eu topo',
-  'fechado',
-  'aceito',
-  'vamos nessa',
-  'sim, quero',
-  'onde eu assino',
-  // logistica de quem ja decidiu
-  'qual o endereco',
-  'que horas funciona',
-  'preciso levar algum documento',
+  'quero marcar uma consulta',
+  'como faco pra marcar',
+  'como faco pra agendar',
 ];
+
+const BUYING_PHRASES = [...PRECO_PLANO_PHRASES, ...FECHAMENTO_PHRASES, ...AGENDAMENTO_PHRASES];
 
 const OUT_OF_SCOPE_PHRASES = [
   'laudo',
@@ -124,10 +133,13 @@ function matchesAny(text, phrases) {
 module.exports = {
   isCrisisSignal: (text) => matchesAny(text, CRISIS_PHRASES),
   isBuyingSignal: (text) => matchesAny(text, BUYING_PHRASES),
-  isPriceQuestion: (text) => matchesAny(text, PRICE_PHRASES),
+  isPrecoDoPlano: (text) => matchesAny(text, PRECO_PLANO_PHRASES),
+  isPedidoDeAgendamento: (text) => matchesAny(text, AGENDAMENTO_PHRASES),
   isOutOfScope: (text) => matchesAny(text, OUT_OF_SCOPE_PHRASES),
   CRISIS_PHRASES,
   BUYING_PHRASES,
-  PRICE_PHRASES,
+  PRECO_PLANO_PHRASES,
+  FECHAMENTO_PHRASES,
+  AGENDAMENTO_PHRASES,
   OUT_OF_SCOPE_PHRASES,
 };

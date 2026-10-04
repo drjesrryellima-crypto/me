@@ -28,9 +28,17 @@ test('não marca como crise uma conversa comum sobre sintomas', () => {
   }
 });
 
-test('reconhece intenção de compra', () => {
-  for (const frase of ['Quanto custa?', 'qual o valor', 'quero agendar', 'aceita pix?']) {
+// "Quanto custa?" e "aceita pix?" saíram desta lista em 04/10/2026: a
+// assistente agora responde as duas. Sobrou o que é de fato do humano.
+test('reconhece o que é do humano: fechar programa e marcar', () => {
+  for (const frase of ['quanto custa o Recomeço', 'quero contratar', 'quero agendar']) {
     assert.strictEqual(isBuyingSignal(frase), true, `não detectou compra em: "${frase}"`);
+  }
+});
+
+test('pergunta que o consultório sabe responder não vira handoff', () => {
+  for (const frase of ['Quanto custa?', 'aceita pix?', 'qual o endereço', 'atende sábado?']) {
+    assert.strictEqual(isBuyingSignal(frase), false, `ainda encaminha: "${frase}"`);
   }
 });
 
