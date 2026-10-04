@@ -109,6 +109,14 @@
     white-space: nowrap; margin-right: 6px;
   }
   button.responder[disabled] { opacity: .55; cursor: default; }
+  button.atendido {
+    font-size: 12px; padding: 4px 9px; min-height: 0;
+    white-space: nowrap; margin-right: 6px;
+  }
+  button.atendido[disabled] { opacity: .55; cursor: default; }
+  /* Quem está em handoff e ninguém atendeu ainda. Não é decoração: é a linha
+     que o médico precisa achar primeiro quando abre o painel. */
+  tr.esperando td.principal { box-shadow: inset 3px 0 0 var(--critical); }
 
   /* --- caixa de resposta --- */
   dialog.composer {
@@ -699,7 +707,8 @@
     $('corpo-tabela').innerHTML = linhas.map(function (l) {
       var cls = classeTag(l.state, l.risco);
       var rotulo = rotulos[l.state] || l.state;
-      return '<tr>' +
+      var esperando = l.state === 'HANDOFF' && l.handoffEm && !l.atendidoEm;
+      return '<tr' + (esperando ? ' class="esperando"' : '') + '>' +
         '<td class="principal">' + esc(l.phone) + '</td>' +
         '<td>' + (esc(l.nome) || '—') + '</td>' +
         '<td><span class="tag ' + cls + '">' +
@@ -712,6 +721,10 @@
         '<td>' +
           (l.janelaAberta
             ? '<button class="responder" data-phone="' + esc(l.phone) + '">Responder</button>'
+            : '') +
+          (esperando
+            ? '<button class="atendido" data-phone="' + esc(l.phone) + '" ' +
+              'title="Para os avisos de handoff sem resposta. Use se você já respondeu pelo seu celular.">Atendido</button>'
             : '') +
           (PARADOS.indexOf(l.state) >= 0
             ? '<button class="reativar" data-phone="' + esc(l.phone) + '">Reativar</button>'
@@ -826,6 +839,27 @@
       });
   }
 
+  function marcarAtendido(phone, botao) {
+    var rotulo = botao.textContent;
+    botao.disabled = true;
+    botao.textContent = 'Marcando…';
+    var url = '/api/leads/' + encodeURIComponent(phone) + '/atendido' +
+      (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
+    fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' } })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (corpo) {
+          if (!r.ok) throw new Error(corpo.erro || 'falha ao marcar');
+          return corpo;
+        });
+      })
+      .then(function () { return carregar(); })
+      .catch(function (err) {
+        botao.disabled = false;
+        botao.textContent = rotulo;
+        alert('Não deu pra marcar como atendido: ' + (err.message || 'erro desconhecido'));
+      });
+  }
+
   function carregar() {
     var url = '/api/leads' + (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
     return fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -891,6 +925,11 @@
     var responder = e.target.closest('button.responder');
     if (responder) {
       abrirComposer(responder.getAttribute('data-phone'));
+      return;
+    }
+    var atendido = e.target.closest('button.atendido');
+    if (atendido) {
+      marcarAtendido(atendido.getAttribute('data-phone'), atendido);
       return;
     }
     var botao = e.target.closest('button.reativar');

@@ -47,7 +47,17 @@ function registrarTurno(phone, role, content) {
 async function encaminharParaHumano(from, { texto, priority, notas, state = 'HANDOFF', ultimaMensagem }) {
   await enviar(from, texto);
   registrarTurno(from, 'assistant', texto);
-  const lead = saveLead(from, { state, notas });
+  // handoffEm é o relógio do re-alerta (src/handoff-parado.js). Os contadores
+  // são zerados aqui: um lead que volta a precisar de humano merece a mesma
+  // insistência do primeiro handoff, não o saldo gasto no anterior.
+  const campos = { state, notas };
+  if (state === 'HANDOFF') {
+    campos.handoffEm = new Date().toISOString();
+    campos.atendidoEm = null;
+    campos.realertasEnviados = 0;
+    campos.ultimoRealertaEm = null;
+  }
+  const lead = saveLead(from, campos);
   if (priority) {
     await sendHandoffAlert({
       priority,

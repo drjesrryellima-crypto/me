@@ -152,6 +152,9 @@ function montarLinhas(leads) {
     // O painel precisa saber se ainda dá para responder em texto livre, senão
     // oferece um campo que só vai falhar depois de o médico escrever.
     janelaAberta: janela(lead).aberta,
+    // Para o painel mostrar quem ainda está esperando por um humano.
+    handoffEm: lead.handoffEm || null,
+    atendidoEm: lead.atendidoEm || null,
   }));
 }
 
@@ -229,9 +232,35 @@ function criarRouter() {
       ...(lead.historicoConversa || []),
       { role: 'assistant', content: plano.texto, autor: 'medico' },
     ];
-    const salvo = saveLead(phone, { historicoConversa: historicoConversa.slice(-40) });
+    const salvo = saveLead(phone, {
+      historicoConversa: historicoConversa.slice(-40),
+      // Responder é atender: para os re-alertas de handoff parado.
+      atendidoEm: new Date().toISOString(),
+    });
     console.log(`[dashboard] resposta do médico enviada para ${phone} (${plano.texto.length} caracteres)`);
     return res.json({ ok: true, lead: montarLinhas([salvo])[0] });
+  });
+
+  // Marca o handoff como atendido sem mandar mensagem.
+  //
+  // Existe porque o médico também responde pelo WhatsApp do celular dele, e o
+  // sistema não tem como ver isso. Sem este botão, os re-alertas continuariam
+  // chegando sobre uma conversa que ele já atendeu — e alerta que mente é
+  // alerta que a gente aprende a ignorar, o que estraga justamente o de crise.
+  router.post('/api/leads/:phone/atendido', exigirToken, (req, res) => {
+    try {
+      const phone = String(req.params.phone || '');
+      const lead = getLead(phone);
+      if (!lead) {
+        return res.status(404).json({ erro: 'lead não encontrado' });
+      }
+      const salvo = saveLead(phone, { atendidoEm: new Date().toISOString() });
+      console.log(`[dashboard] handoff de ${phone} marcado como atendido`);
+      return res.json({ ok: true, lead: montarLinhas([salvo])[0] });
+    } catch (err) {
+      console.error('[dashboard] erro ao marcar como atendido:', err.message);
+      return res.status(500).json({ erro: 'falha ao marcar como atendido' });
+    }
   });
 
   return router;
