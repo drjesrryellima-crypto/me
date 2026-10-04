@@ -4,6 +4,7 @@ const express = require('express');
 const { readAll, getLead, saveLead } = require('./state');
 const { planejarReativacao } = require('./reativar');
 const { planejarResposta, janela } = require('./responder');
+const { webhookProtegido } = require('./assinatura');
 const { sendText } = require('./whatsapp');
 const { explicarErroMeta } = require('./erros-meta');
 const { ETAPA_QUALIFICACAO, ETAPA_FOLLOWUP, ROTULO_ESTADO, ehRisco } = require('./estados');
@@ -122,6 +123,11 @@ function montarResumo(leads) {
       { rotulo: 'Cliente', valor: clientes },
       { rotulo: 'Desqualificado', valor: desqualificados },
     ],
+    // Até aqui, saber se o webhook estava protegido exigia caçar uma linha no
+    // log da Railway — que só aparece no boot e some na rolagem. Estado de
+    // segurança que ninguém consegue ver é estado de segurança que ninguém
+    // corrige.
+    seguranca: { webhookProtegido: webhookProtegido() },
     porDia: serieDiaria(leads, 14),
     porClassificacao,
     porEstado,

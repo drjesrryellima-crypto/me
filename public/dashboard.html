@@ -266,6 +266,7 @@
     </div>
   </header>
 
+  <div id="alerta-seguranca"></div>
   <div id="alerta-risco"></div>
 
   <section class="grade tiles" id="tiles" aria-label="Indicadores principais"></section>
@@ -596,6 +597,25 @@
     return '';
   }
 
+  // Webhook sem App Secret aceita POST de qualquer origem: dá pra forjar
+  // mensagem de um telefone que não é do paciente e disparar falso alerta de
+  // crise. O aviso existia só no log do boot, que some na rolagem — e aí
+  // ninguém corrige. Aqui ele fica na cara até ser resolvido.
+  function renderSeguranca(resumo) {
+    var alvo = $('alerta-seguranca');
+    var seg = resumo.seguranca;
+    if (!seg || seg.webhookProtegido) { alvo.innerHTML = ''; return; }
+    alvo.innerHTML =
+      '<div class="alerta" role="alert">' +
+        '<h2><span aria-hidden="true">⚠</span> Webhook desprotegido</h2>' +
+        '<ul><li>Sem <strong>WHATSAPP_APP_SECRET</strong>, o endereço do webhook aceita ' +
+        'mensagem de qualquer origem — dá pra forjar conversa de um telefone que não é ' +
+        'do paciente e disparar falso alerta de crise. Pegue o App Secret em ' +
+        'developers.facebook.com → seu app → Configurações → Básico, e defina a variável ' +
+        'no servidor.</li></ul>' +
+      '</div>';
+  }
+
   function renderAlerta(resumo) {
     var alvo = $('alerta-risco');
     if (!resumo.risco.length) { alvo.innerHTML = ''; return; }
@@ -745,6 +765,7 @@
     var resumo = dados.resumo;
     $('sub').textContent = 'Atualizado às ' +
       new Date(resumo.geradoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    renderSeguranca(resumo);
     renderAlerta(resumo);
     renderTiles(resumo);
     renderGraficos(resumo);

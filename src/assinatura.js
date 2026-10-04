@@ -46,4 +46,11 @@ function avisarSeSemAppSecret() {
   }
 }
 
-module.exports = { exigirAssinatura, assinaturaConfere, avisarSeSemAppSecret };
+// Lido em tempo de chamada, não no boot: o painel mostra o estado ao vivo, e
+// uma leitura congelada mentiria depois de um redeploy com a variável nova.
+function webhookProtegido() {
+  const s = process.env.WHATSAPP_APP_SECRET;
+  return Boolean(s && s.trim());
+}
+
+module.exports = { exigirAssinatura, assinaturaConfere, avisarSeSemAppSecret, webhookProtegido };

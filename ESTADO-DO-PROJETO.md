@@ -317,9 +317,19 @@ não resolve, e o paciente já recebeu o 188 na primeira mensagem.
 ## Pendências
 
 **Antes de divulgar o número pra paciente**
-- Conferir se `WHATSAPP_APP_SECRET` está definido na Railway. Sem ele o webhook
-  aceita POST de qualquer origem — dá pra injetar mensagem falsa de paciente. O
-  log avisa no boot: filtre por `APP_SECRET`.
+- Definir `WHATSAPP_APP_SECRET` na Railway. **O painel avisa sozinho:** se
+  estiver faltando, aparece uma tarja vermelha "Webhook desprotegido" no topo
+  do `/dashboard`. Sem a variável, o endereço do webhook aceita mensagem de
+  qualquer origem — dá pra forjar conversa de um telefone que não é do paciente
+  e disparar falso alerta de crise.
+
+  Onde pegar: developers.facebook.com → seu app → **Configurações → Básico** →
+  App Secret (botão "Mostrar"). Cola direto na variável da Railway — não passa
+  por chat nenhum.
+
+  Variável criada **em branco** é o caso que mais engana: aparece configurada
+  no painel da Railway e não protege nada. A tarja continua vermelha nesse caso,
+  de propósito.
 
 ## O app está publicado
 
