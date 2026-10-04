@@ -290,6 +290,42 @@ travando.
 o vigia de handoff parado não re-alerta sobre ele (de propósito: um deploy não
 pode virar avalanche de notificação). Se for o caso, Reativar e refazer.
 
+## Descadastro (PARAR/SAIR)
+
+A LGPD dá o direito de revogar o consentimento a qualquer momento (art. 18,
+IX). Até 04/10/2026 o único caminho era o e-mail da política de privacidade —
+que ninguém lê e ninguém usa. Na prática, não havia como sair.
+
+Agora o bot atende **PARAR, PARE, SAIR, CANCELAR, DESCADASTRAR, REMOVER,
+STOP** e "não quero mais receber". A pessoa recebe uma confirmação, o lead vai
+para `DESCADASTRADO` e nada mais é enviado.
+
+**A comparação é com a mensagem INTEIRA, nunca "contém".** "Não pare de me
+ajudar", "a dor não para", "quero parar de tomar o remédio" não descadastram
+ninguém. O custo de um falso positivo é calar para sempre quem estava pedindo
+ajuda. Por isso **"para" sozinho ficou de fora**: é a palavra mais fácil de
+aparecer solta numa conversa real.
+
+**Crise ganha do descadastro.** Se a mensagem for sinal de risco, vira handoff
+prioritário. Ninguém é descadastrado no meio de um pedido de socorro.
+
+**Quem está em HANDOFF também consegue sair.** Era o único caminho de saída, e
+ficava bloqueado justamente para quem mais tinha motivo de usá-lo.
+
+**Nada é apagado.** Motivo, histórico e classificação continuam onde estão.
+Apagar automaticamente destruiria registro que o consultório pode ser obrigado
+a guardar. A exclusão de verdade continua sendo pedida pelo e-mail da política
+e avaliada caso a caso.
+
+**Se a pessoa voltar a escrever**, o bot NÃO responde — um robô que volta a
+falar sozinho depois de "pare" é exatamente o que ela pediu para não acontecer.
+Mas você é avisado no Telegram (`✉️ DESCADASTRADO VOLTOU A ESCREVER`), e pode
+trazê-la de volta pelo botão **Reativar**. Só humano reabre essa porta.
+
+Na planilha o estágio vira "Desqualificado" — imperfeito para quem só exerceu
+um direito, mas é o valor que significa "não procurar". A verdade exata fica na
+coluna "Estado (técnico)".
+
 ## Quando o paciente volta a escrever
 
 A automação fica calada com quem está em HANDOFF. Até 04/10/2026 ela ficava

@@ -27,6 +27,7 @@ const ROTULO_ESTADO = {
   HANDOFF: 'Handoff',
   DESQUALIFICADO: 'Desqualificado',
   CLIENTE: 'Cliente',
+  DESCADASTRADO: 'Descadastrado',
 };
 
 // A planilha CRM do consultório usa um vocabulário de funil de vendas próprio,
@@ -51,6 +52,15 @@ const ESTAGIO_CRM = {
   HANDOFF: 'Consulta Proposta',
   DESQUALIFICADO: 'Desqualificado',
   CLIENTE: 'Convertido',
+  // "Perdido" seria mais descritivo, mas é um dos três estágios que só uma
+  // pessoa confirma (ver test/sheets-crm.test.js): o bot escrevê-lo
+  // sobrescreveria com palpite o que alguém preencheu sabendo mais.
+  //
+  // "Desqualificado" não é elogio a quem só exerceu um direito, e é imperfeito
+  // — mas na planilha significa "não procurar", que é exatamente o que vale
+  // aqui. A verdade exata fica na coluna "Estado (técnico)", que guarda
+  // DESCADASTRADO sem perder nada.
+  DESCADASTRADO: 'Desqualificado',
 };
 
 // HANDOFF é o encaixe imperfeito: no vocabulário da planilha, "Consulta

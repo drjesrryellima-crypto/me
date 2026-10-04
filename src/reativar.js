@@ -15,7 +15,10 @@
 // pessoa não vira estranha — a assistente reencontra alguém de quem já sabe
 // alguma coisa. Só o estado volta, para o fluxo poder andar de novo.
 
-const REATIVAVEIS = new Set(['HANDOFF', 'DESQUALIFICADO', 'CLIENTE']);
+// DESCADASTRADO entra aqui porque a pessoa pode voltar a escrever querendo
+// retomar — e aí só um humano pode decidir que o consentimento voltou. O bot
+// nunca se reativa sozinho depois de um "pare".
+const REATIVAVEIS = new Set(['HANDOFF', 'DESQUALIFICADO', 'CLIENTE', 'DESCADASTRADO']);
 
 /**
  * @param {object} lead o lead como está gravado

@@ -52,6 +52,18 @@ module.exports = {
   handoffValor: () =>
     `Sobre valores quem te responde é o próprio Dr. Jesrryel — assim ele já te explica o que faz sentido pro seu caso, em vez de um número solto. Vou chamar ele agora. Já volto com você 💙`,
 
+  // Confirmação do descadastro. Três coisas, nesta ordem e por este motivo:
+  //
+  // 1. Confirma sem perguntar nada. Quem pede pra sair não quer negociar.
+  // 2. Diz como voltar, porque sair não pode virar porta trancada: muita
+  //    gente desiste de tratamento num dia ruim e volta semanas depois.
+  // 3. Mantém o 188 visível. É a única linha que precisa sobreviver a
+  //    qualquer configuração, inclusive à vontade de não ouvir mais nada.
+  descadastroConfirmado: () =>
+    `Pronto. Não vou mais te mandar mensagem por aqui.\n\n` +
+    `Se um dia você quiser retomar, é só escrever de novo — a porta continua aberta.\n\n` +
+    `E se em algum momento você precisar de ajuda imediata, o *188* (CVV) atende de graça, 24 horas.`,
+
   followupD2: () =>
     `Separei um conteúdo que fala exatamente sobre o que você me contou — acho que vai fazer sentido pra você. Dá uma olhada com calma 💙\n[link do conteúdo]`,
 

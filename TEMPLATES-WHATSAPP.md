@@ -128,14 +128,27 @@ WhatsApp Business. Sem isso, template aprovado não envia (erro `131042`).
 
 ---
 
-## Duas coisas que ficaram em aberto
+## Descadastro: agora pode oferecer
 
-**1. Descadastro.** Nenhum dos textos diz "responda PARAR para não receber
-mais" — porque o bot não trata "PARAR". Prometer um botão que não existe é pior
-que não oferecer. Hoje o descadastro é pelo e-mail da política de privacidade.
-Se você quiser, dá pra fazer o bot reconhecer PARAR/SAIR e marcar o lead como
-descadastrado — aí o texto passa a poder oferecer.
+Desde 04/10/2026 o bot reconhece **PARAR**, **SAIR**, **CANCELAR**,
+**DESCADASTRAR**, **REMOVER**, **PARE** e **STOP**. Quem escreve uma dessas
+recebe uma confirmação e não recebe mais nada.
 
-**2. O conteúdo em si.** Os templates do D+2 e do D+5 prometem "um material".
+Então os quatro templates podem ganhar esta linha no fim, se você quiser:
+
+```
+Se não quiser mais receber mensagens, é só responder PARAR.
+```
+
+Não é obrigatório no Brasil, mas ajuda na aprovação da Meta em categoria
+Marketing — e agora é verdade, que é o que importa.
+
+**Só funciona com a mensagem inteira.** "Quero parar de tomar o remédio" não
+descadastra ninguém: a comparação é com o texto todo, nunca com um pedaço. Um
+falso positivo aqui calaria para sempre alguém que estava pedindo ajuda.
+
+## O conteúdo em si
+
+**O conteúdo.** Os templates do D+2 e do D+5 prometem "um material".
 Esse material precisa existir antes de o follow-up rodar, senão a pessoa
 responde e não tem o que mandar.
