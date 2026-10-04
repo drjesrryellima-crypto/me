@@ -3,6 +3,8 @@ const messages = require('./messages');
 const { sendText } = require('./whatsapp');
 const { isCrisisSignal, isBuyingSignal, isPriceQuestion, isOutOfScope } = require('./triggers');
 const { sendHandoffAlert } = require('./alert');
+const telegram = require('./telegram');
+const { planejarAvisoDeRetorno, montarTexto, camposDeRetorno } = require('./retorno-handoff');
 const { appendLeadRow } = require('./sheets');
 const assistente = require('./assistente');
 const { explicarErroMeta } = require('./erros-meta');
@@ -138,6 +140,27 @@ async function handleIncomingMessage({ from, text, nome }) {
   // Conversa já está com um humano — automação fica em silêncio.
   if (['HANDOFF', 'DESQUALIFICADO', 'CLIENTE'].includes(lead.state)) {
     console.log(`[flow] mensagem de ${from} em estado ${lead.state} — ignorada pela automação.`);
+
+    // Calada para o paciente, sim. Calada para o médico também, não: alguém em
+    // HANDOFF que volta a escrever está esperando agora, e até aqui isso só
+    // virava linha de log.
+    const plano = planejarAvisoDeRetorno(lead);
+    if (plano.avisar) {
+      const texto = montarTexto(lead, textoOriginal, plano);
+      console.log(
+        `[retorno] ${from} voltou a escrever em HANDOFF${plano.risco ? ' (RISCO)' : ''} — ` +
+          `avisando (${(textoOriginal || '').length} caracteres)`
+      );
+      const entregue = await telegram.enviarAlerta(texto);
+      if (!entregue) {
+        console.warn(`[retorno] ⚠️  NINGUÉM FOI AVISADO de que ${from} voltou a escrever.`);
+      } else {
+        // Só grava depois de entregue: marcar um aviso que não saiu faria a
+        // janela de agrupamento engolir os próximos dez minutos em silêncio.
+        saveLead(from, camposDeRetorno());
+      }
+    }
+
     await appendLeadRow(getLead(from));
     return;
   }

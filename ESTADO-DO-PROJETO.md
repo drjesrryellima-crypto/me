@@ -265,6 +265,29 @@ travando.
 o vigia de handoff parado não re-alerta sobre ele (de propósito: um deploy não
 pode virar avalanche de notificação). Se for o caso, Reativar e refazer.
 
+## Quando o paciente volta a escrever
+
+A automação fica calada com quem está em HANDOFF. Até 04/10/2026 ela ficava
+calada para os **dois** lados: o paciente não recebia resposta do bot e o
+médico não era avisado de nada — a mensagem virava só uma linha de log. Para
+quem estava do outro lado, indistinguível de ter sido esquecido.
+
+Agora toda mensagem de alguém em HANDOFF dispara aviso no Telegram, com o link
+da conversa e o texto da pessoa. Em caso de risco o cabeçalho muda para
+`🚨 EM CRISE E ESCREVEU DE NOVO`.
+
+**Rajada vira um aviso só** (janela de 10 minutos). Quem está em sofrimento
+escreve "oi", "você está aí?", "preciso falar" em dois minutos — cinco
+notificações seguidas ensinam a silenciar o alerta, e aí o de crise some junto.
+
+**Mensagem nova reinicia o relógio do vigia.** A pessoa passou a esperar a
+partir daquela mensagem, não desde o handoff original. Sem isso o vigia ou
+acharia que ela espera há dias e dispararia na hora mentindo no tempo, ou a
+daria por atendida e nunca mais olharia para ela.
+
+Só HANDOFF avisa. DESQUALIFICADO pediu laudo e foi recusado; CLIENTE já é
+paciente — nenhum dos dois é alguém esperando resposta agora.
+
 ## O handoff que ninguém atendeu
 
 O alerta de crise dispara **uma vez**. Celular no silencioso, consulta em
