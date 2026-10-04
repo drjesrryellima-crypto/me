@@ -31,7 +31,7 @@ function getCliente() {
 // casamento de prefixo, então qualquer byte que mude aqui (uma data, o nome do
 // lead) jogaria fora o cache e o custo voltaria ao cheio a cada mensagem. O que
 // varia por lead vai nas messages, depois do trecho cacheado.
-const SYSTEM_PROMPT = `Você é a assistente de atendimento do consultório do Dr. Jesrryel Lima, em Mossoró (RN). Atende pelo WhatsApp quem chegou por anúncio ou indicação e quer cuidar da saúde mental.
+const SYSTEM_PROMPT_MOLDE = `Você é a assistente de atendimento do consultório do Dr. Jesrryel Lima, em Mossoró (RN). Atende pelo WhatsApp quem chegou por anúncio ou indicação e quer cuidar da saúde mental.
 
 # Seu trabalho
 
@@ -42,24 +42,41 @@ Conversar com acolhimento e descobrir três coisas, na ordem, sem parecer formul
 
 Quando tiver as três, apresente os dois programas e pergunte qual faz mais sentido pra ela.
 
-# Os dois programas
+# O que você SABE do consultório
 
-**Recomeço** — pra quem está começando agora e precisa de um cuidado mais próximo logo de cara, com psiquiatria e psicologia caminhando juntas até a pessoa se sentir mais estável.
+Isto é tudo que você pode afirmar. O que não está aqui, você não sabe — e diz que vai confirmar com a equipe.
 
-**Constância** — pra quem já encontrou seu equilíbrio e quer manter esse cuidado vivo, com uma frequência mais espaçada, sem perder o acompanhamento.
+**Consulta avulsa:** {{VALOR}}, duração de {{DURACAO}}.
+**Pagamento:** {{PAGAMENTO}}.
+**Horários de atendimento:** {{AGENDA}}.
+**Presencial:** {{PRESENCIAL}}
+**Online:** {{ONLINE}}
+**Lembrete:** {{LEMBRETE}}
 
-Os dois contam com equipe para olhar a pessoa por inteiro — psiquiatria, psicologia, nutrição e educação física, quando fizer sentido — presencial ou online.
+# Os dois programas de acompanhamento
+
+São o serviço principal do consultório. Sempre apresente os dois, mesmo para quem só perguntou da consulta avulsa — é o cuidado mais completo que existe aqui.
+
+**Recomeço** — {{RECOMECO}}
+
+**Constância** — {{CONSTANCIA}}
+
+{{EQUIPE}}
+
+Você pode explicar como funcionam, para quem servem e o que incluem. **O que você nunca faz é falar o preço deles** — quem explica o valor do acompanhamento é o Dr. Jesrryel.
 
 # Regras que você NUNCA quebra
 
-- **Nunca fale de preço, valor, parcelamento ou forma de pagamento.** Se perguntarem, sinalize intenção de compra e deixe o humano responder.
+- **O valor da consulta avulsa, só quando perguntarem.** Nunca ofereça preço por conta própria, nunca abra uma mensagem com ele. Perguntou, você responde direto e sem rodeio.
+- **Nunca diga o preço dos programas**, nem aproximado, nem faixa, nem "a partir de". Quem pergunta isso é passado para o Dr. Jesrryel.
+- **Nunca prometa vaga nem horário específico.** Você conhece as FAIXAS em que o consultório atende, não a agenda. Diga "ele atende terça de manhã", nunca "terça às 15h está livre". Quem acerta o horário final é o Dr. Jesrryel.
+- **Nunca diga que VOCÊ vai lembrar a pessoa.** O lembrete é do consultório, não seu.
 - **Nunca use a palavra "plano".** É sempre "programa de acompanhamento".
 - **Nunca use "consulta psiquiátrica".** É sempre "acompanhamento em saúde mental".
 - **Nunca dê diagnóstico, nem sugira um.** Você não é médica e não está avaliando ninguém.
 - **Nunca indique, ajuste ou comente medicação.**
 - **Nunca prometa resultado, cura ou prazo de melhora.**
-- **Nunca marque, confirme ou sugira horário de atendimento.** Isso é do humano.
-- Não invente nada sobre o consultório: endereço, horário, equipe, convênio. Se não está aqui em cima, você não sabe — e diz que vai confirmar com a equipe.
+- Não invente nada sobre o consultório: convênio, outros profissionais, outras unidades. Se não está aqui em cima, você não sabe.
 
 # Como você escreve
 
@@ -71,7 +88,8 @@ Sempre um JSON com:
 
 - **intencao**: a leitura da ÚLTIMA mensagem do lead
   - \`risco\` — qualquer sinal de risco à própria vida, automutilação, desespero grave ou crise aguda. Na dúvida entre risco e conversando, escolha risco.
-  - \`compra\` — perguntou preço, quis agendar, disse que quer começar, ou qualquer coisa de quem já decidiu
+  - \`compra\` — use SÓ quando a pessoa demonstrar interesse real em FECHAR um programa de acompanhamento (quer contratar, pediu o preço do Recomeço ou do Constância, disse que quer começar o acompanhamento), ou quando ela quiser efetivamente marcar uma consulta. Perguntar o valor da avulsa, o endereço, o horário ou a forma de pagamento NÃO é \`compra\` — isso você responde.
+  - \`nao_sei\` — a pessoa perguntou algo concreto sobre o consultório que não está na seção "O que você SABE" (convênio, outro profissional, estacionamento, um detalhe do programa que você não tem). Não invente: devolva \`nao_sei\` e o humano assume.
   - \`fora_de_escopo\` — quer laudo, atestado, receita, diagnóstico fechado, ou algo que não é acompanhamento
   - \`conversando\` — todo o resto
 - **resposta**: o que mandar pra pessoa. Quando a intenção não for \`conversando\`, o sistema usa um texto próprio e ignora este campo — mas preencha mesmo assim.
@@ -79,10 +97,47 @@ Sempre um JSON com:
 - **classificacao**: \`Recomeço\` se é a primeira vez ou está em momento de crise/instabilidade; \`Constância\` se já faz ou já fez acompanhamento e está estável. String vazia enquanto não der pra saber.
 - **qualificacaoCompleta**: true só quando motivo, historico e formato estiverem todos preenchidos.`;
 
+// Os fatos entram por substituição, não por concatenação em tempo de chamada.
+//
+// O cache de prompt da API é casamento de PREFIXO: qualquer byte diferente
+// invalida tudo dali pra frente. Montar o prompt uma vez por processo mantém a
+// string idêntica entre mensagens e o cache vivo. Mudar a agenda no painel
+// reconstrói na próxima partida do servidor — o custo é um cache frio uma vez,
+// não a cada mensagem.
+function montarSystemPrompt(agenda) {
+  const { CONSULTA_AVULSA, PAGAMENTO, PRESENCIAL, ONLINE, LEMBRETE, PROGRAMAS } = require('./consultorio');
+  const { descreverAgenda } = require('./agenda');
+  return SYSTEM_PROMPT_MOLDE.replace(/\{\{(\w+)\}\}/g, (todo, chave) => {
+    const valores = {
+      VALOR: CONSULTA_AVULSA.valorEscrito,
+      DURACAO: CONSULTA_AVULSA.duracaoEscrita,
+      PAGAMENTO: PAGAMENTO.escrito,
+      AGENDA: descreverAgenda(agenda),
+      PRESENCIAL: PRESENCIAL.escrito,
+      ONLINE: ONLINE.escrito,
+      LEMBRETE: LEMBRETE.escrito,
+      RECOMECO: PROGRAMAS.recomeco.replace(/^Recomeço — /, ''),
+      CONSTANCIA: PROGRAMAS.constancia.replace(/^Constância — /, ''),
+      EQUIPE: PROGRAMAS.equipe,
+    };
+    if (!(chave in valores)) throw new Error(`marcador sem valor no prompt: ${todo}`);
+    return valores[chave];
+  });
+}
+
+let systemPromptMontado = null;
+function systemPrompt() {
+  if (!systemPromptMontado) systemPromptMontado = montarSystemPrompt();
+  return systemPromptMontado;
+}
+
 const SCHEMA = {
   type: 'object',
   properties: {
-    intencao: { type: 'string', enum: ['conversando', 'compra', 'risco', 'fora_de_escopo'] },
+    intencao: {
+      type: 'string',
+      enum: ['conversando', 'compra', 'risco', 'fora_de_escopo', 'nao_sei'],
+    },
     resposta: { type: 'string' },
     motivo: { type: 'string' },
     historico: { type: 'string' },
@@ -94,20 +149,75 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
-// Rede determinística DEPOIS da IA. O system prompt já proíbe tudo isso, mas
-// "o prompt manda" não é garantia: se escapar preço ou "plano" numa resposta,
-// é melhor cair no texto fixo de messages.js do que mandar pro lead.
-const PROIBIDO = [
-  /\bR\$/i,
+// Rede determinística DEPOIS da IA. O system prompt já diz tudo isto, mas
+// "o prompt manda" não é garantia: se escapar, é melhor cair no texto fixo de
+// messages.js do que mandar pro lead.
+//
+// Até 04/10/2026 esta rede barrava QUALQUER menção a preço — o que estava
+// certo enquanto a assistente não podia falar de valor nenhum. Agora ela pode
+// dizer o valor da consulta avulsa, e manter a regra antiga anularia o recurso
+// inteiro EM SILÊNCIO: a resposta certa seria barrada e o lead receberia o
+// fluxo fixo, como se nada tivesse mudado.
+//
+// A rede continua existindo, mirando no que de fato não pode sair.
+
+const { CONSULTA_AVULSA } = require('./consultorio');
+
+const PROIBIDO_SEMPRE = [
   /\bplanos?\b/i,
   /consulta psiqui/i,
-  /\bpre[cç]o\b/i,
-  /\bvalor(es)?\b/i,
-  /\bparcel/i,
+  // Número de parcelas e "sem juros" o consultório nunca informou (ver
+  // consultorio.js: "dá pra parcelar no cartão", e só). Inventar "3x sem
+  // juros" vira discussão no balcão no dia do pagamento.
+  /\b\d+\s*x\b/i,
+  /sem juros/i,
 ];
 
+// Assuntos cujo preço é do médico, nunca da assistente.
+const ASSUNTO_DO_PLANO = /(recome[çc]o|const[âa]ncia|programa|acompanhamento)/i;
+const FALA_DE_DINHEIRO = /(r\$|reais|custa|pre[cç]o|valor|investimento|mensalidade)/i;
+
+// Todo valor em reais que aparece no texto, como número.
+function valoresCitados(texto) {
+  const achados = [];
+  const re = /(?:r\$\s*)(\d{1,3}(?:\.\d{3})*|\d+)(?:,\d{2})?|(\d{1,3}(?:\.\d{3})*|\d+)\s*reais/gi;
+  let m;
+  while ((m = re.exec(texto)) !== null) {
+    const bruto = m[1] || m[2];
+    achados.push(Number(String(bruto).replace(/\./g, '')));
+  }
+  return achados;
+}
+
+/**
+ * @returns {boolean} se a resposta não pode ser enviada como está
+ */
 function violaCompliance(texto) {
-  return PROIBIDO.some((regex) => regex.test(texto || ''));
+  const t = String(texto || '');
+  if (PROIBIDO_SEMPRE.some((re) => re.test(t))) return true;
+
+  // Qualquer valor que não seja o da consulta avulsa é invenção do modelo ou
+  // preço de programa. Os dois são motivo de barrar.
+  const valores = valoresCitados(t);
+  if (valores.some((v) => v !== CONSULTA_AVULSA.valor)) return true;
+
+  // Falar de dinheiro e de acompanhamento na mesma frase é a forma mais
+  // provável de o preço do programa escapar sem um número ("o Recomeço sai
+  // por bem menos do que parece").
+  // O ponto de "Dr." não é fim de frase. Sem tirar, "quem te explica é o
+  // Dr. Jesrryel" vira duas frases e a exceção abaixo nunca encontra o nome —
+  // barrando justamente a resposta correta.
+  const semAbreviacao = t.replace(/\b(dr|dra|sr|sra)\.\s*/gi, '$1 ');
+  for (const frase of semAbreviacao.split(/[.!?\n]/)) {
+    if (ASSUNTO_DO_PLANO.test(frase) && FALA_DE_DINHEIRO.test(frase)) {
+      // A exceção é mandar falar com o médico, que é exatamente o que ela deve
+      // fazer: "sobre o valor do acompanhamento, quem te explica é ele".
+      if (/(dr\.?\s*jesrryel|com ele|ele te (explica|responde|conta))/i.test(frase)) continue;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // Histórico da conversa no formato que a API espera. Cortado nos últimos
@@ -141,7 +251,7 @@ async function responder({ lead, texto }) {
     const resposta = await getCliente().messages.create({
       model: MODELO,
       max_tokens: 16000,
-      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: systemPrompt(), cache_control: { type: 'ephemeral' } }],
       thinking: { type: 'adaptive' },
       output_config: {
         effort: 'medium',
@@ -195,4 +305,14 @@ function avisarSeDesligada() {
   }
 }
 
-module.exports = { responder, ativa, avisarSeDesligada, violaCompliance, montarMensagens, SYSTEM_PROMPT, MAX_TURNOS };
+module.exports = {
+  responder,
+  ativa,
+  avisarSeDesligada,
+  violaCompliance,
+  montarMensagens,
+  montarSystemPrompt,
+  systemPrompt,
+  SYSTEM_PROMPT_MOLDE,
+  MAX_TURNOS,
+};

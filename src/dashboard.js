@@ -5,6 +5,7 @@ const { readAll, getLead, saveLead } = require('./state');
 const { planejarReativacao } = require('./reativar');
 const { planejarResposta, janela } = require('./responder');
 const { webhookProtegido } = require('./assinatura');
+const { lerAgenda, salvarAgenda, validarAgenda, descreverAgenda, DIAS } = require('./agenda');
 const { sendText } = require('./whatsapp');
 const { explicarErroMeta } = require('./erros-meta');
 const { ETAPA_QUALIFICACAO, ETAPA_FOLLOWUP, ROTULO_ESTADO, ehRisco } = require('./estados');
@@ -245,6 +246,34 @@ function criarRouter() {
     });
     console.log(`[dashboard] resposta do médico enviada para ${phone} (${plano.texto.length} caracteres)`);
     return res.json({ ok: true, lead: montarLinhas([salvo])[0] });
+  });
+
+  // As faixas de atendimento que a assistente informa ao paciente.
+  //
+  // Fica no painel, não no .env, porque é a única configuração que o médico
+  // muda de verdade — férias, um sábado a menos — e exigir deploy para isso
+  // garantiria que o bot anunciasse horário errado por semanas.
+  router.get('/api/agenda', exigirToken, (req, res) => {
+    const agenda = lerAgenda();
+    res.json({ agenda, dias: DIAS, descricao: descreverAgenda(agenda) });
+  });
+
+  router.post('/api/agenda', exigirToken, (req, res) => {
+    const validada = validarAgenda(req.body && req.body.agenda);
+    if (!validada.ok) {
+      return res.status(400).json({ erro: validada.erro });
+    }
+    salvarAgenda(validada.agenda);
+    // O prompt da assistente é montado uma vez por processo (cache de prompt
+    // da API). A agenda nova só entra na próxima partida — dizer isso aqui
+    // evita o médico salvar, testar, e achar que não funcionou.
+    console.log('[agenda] faixas atualizadas pelo painel — valem no próximo deploy');
+    return res.json({
+      ok: true,
+      agenda: validada.agenda,
+      descricao: descreverAgenda(validada.agenda),
+      aviso: 'Salvo. A assistente passa a usar estas faixas no próximo deploy do serviço.',
+    });
   });
 
   // Marca o handoff como atendido sem mandar mensagem.

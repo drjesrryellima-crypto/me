@@ -52,6 +52,18 @@ module.exports = {
   handoffValor: () =>
     `Sobre valores quem te responde é o próprio Dr. Jesrryel — assim ele já te explica o que faz sentido pro seu caso, em vez de um número solto. Vou chamar ele agora. Já volto com você 💙`,
 
+  // Quem quer marcar não pode ouvir "ele atende de manhã" outra vez: já
+  // passou dessa fase. O texto confirma que entendeu e diz o que acontece
+  // agora, sem prometer horário que o sistema não tem como garantir.
+  handoffAgendamento: () =>
+    `Perfeito. Quem acerta o horário com você é o próprio Dr. Jesrryel, pra encaixar no que estiver livre de verdade na agenda dele. Já estou avisando — ele te chama por aqui mesmo 💙`,
+
+  // Quando a assistente não sabe. Honestidade é melhor que improviso: um bot
+  // que inventa convênio ou estacionamento cria problema real no dia da
+  // consulta, e quebra a confiança em tudo que ele falou antes.
+  handoffNaoSei: () =>
+    `Essa eu não sei te responder com certeza, e prefiro não chutar. Já perguntei pro Dr. Jesrryel e ele te responde por aqui 💙`,
+
   // Confirmação do descadastro. Três coisas, nesta ordem e por este motivo:
   //
   // 1. Confirma sem perguntar nada. Quem pede pra sair não quer negociar.

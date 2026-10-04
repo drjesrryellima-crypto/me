@@ -240,6 +240,46 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## O que a assistente sabe responder sozinha
+
+Até 04/10/2026 ela não sabia quase nada: o prompt mandava não inventar
+endereço, horário nem valor — e como esses fatos não estavam em lugar nenhum,
+toda pergunta concreta virava handoff. O médico virou o FAQ do próprio
+consultório.
+
+Os fatos agora vivem em **`src/consultorio.js`** (valor avulso, duração,
+pagamento, endereço, online) e **`src/agenda.js`** (faixas de atendimento).
+O que não está lá, ela continua não afirmando.
+
+| Pergunta | Quem responde |
+|---|---|
+| Valor da consulta avulsa | assistente — **só se perguntarem** |
+| Duração, endereço, online/presencial | assistente |
+| Formas de pagamento | assistente |
+| Que horas / que dias atende | assistente, em **faixas** |
+| Como funcionam Recomeço e Constância | assistente |
+| **Preço** do Recomeço ou do Constância | **médico** |
+| Quer fechar um programa | **médico** |
+| Quer marcar consulta | **médico** |
+| Qualquer coisa que ela não saiba | **médico** (`nao_sei`) |
+
+**Ela fala em faixas, nunca em vagas.** Não enxerga a agenda real — prometer
+"terça às 15h está livre" seria marcar em cima de paciente que já está lá.
+
+**Edite as faixas no painel**, na seção "Horários que a assistente informa".
+Valem no **próximo deploy**: o prompt é montado uma vez por processo para o
+cache da API não ser jogado fora a cada mensagem.
+
+**O lembrete do dia anterior é seu, não do sistema.** Não existe agendamento
+gravado aqui, logo não existe nada para disparar lembrete. O texto fala do
+lembrete como rotina do consultório, nunca como promessa do robô.
+
+**A rede de compliance mudou junto** (`violaCompliance` em `assistente.js`).
+Ela barrava qualquer menção a preço; se tivesse ficado assim, a resposta certa
+("a consulta é R$ 350") seria barrada e o lead cairia no fluxo fixo — o recurso
+anulado em silêncio. Hoje ela barra: valor diferente de R$ 350, preço de
+programa, número de parcelas, "sem juros", "plano" e "consulta psiquiátrica".
+
 ## "O bot parou de responder" — leia isto primeiro
 
 **Causa nova desde 04/10/2026: App Secret errado.** Com `WHATSAPP_APP_SECRET`
