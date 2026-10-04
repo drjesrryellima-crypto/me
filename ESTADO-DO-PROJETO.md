@@ -240,6 +240,31 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## "O bot parou de responder" — leia isto primeiro
+
+Quase sempre não parou: **o lead está em HANDOFF**, e aí a automação fica
+calada de propósito. O log mostra assim:
+
+```
+[webhook] mensagem de 558497096643 (2 caracteres)
+[flow] mensagem de 558497096643 chegou com o lead em estado HANDOFF
+[flow] mensagem de 558497096643 em estado HANDOFF — ignorada pela automação.
+```
+
+Recebeu, processou, calou. É o comportamento certo: a conversa é sua, não do
+bot. **Para devolver ao bot: botão Reativar, na linha do lead no painel.**
+
+Isso vale também pra DESQUALIFICADO e CLIENTE.
+
+Em 04/10/2026 esta mensagem custou uma investigação inteira porque a linha do
+meio dizia *"entrou em estado HANDOFF"* a cada mensagem — como se houvesse
+transição. Não havia: o lead já estava lá. A redação foi corrigida e tem teste
+travando.
+
+**Um lead que entrou em HANDOFF antes de 04/10/2026** não tem `handoffEm`, então
+o vigia de handoff parado não re-alerta sobre ele (de propósito: um deploy não
+pode virar avalanche de notificação). Se for o caso, Reativar e refazer.
+
 ## O handoff que ninguém atendeu
 
 O alerta de crise dispara **uma vez**. Celular no silencioso, consulta em

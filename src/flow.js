@@ -88,7 +88,13 @@ async function handleIncomingMessage({ from, text, nome }) {
   // O estado decide todo o resto — inclusive os casos em que a automação fica
   // calada de propósito (HANDOFF/DESQUALIFICADO/CLIENTE). Sem isto no log, um
   // silêncio esperado é indistinguível de uma falha.
-  console.log(`[flow] ${from} entrou em estado ${lead.state}`);
+  //
+  // "chegou com o lead em" e não "entrou em estado": esta linha reporta o
+  // estado em que a mensagem ENCONTROU o lead, não uma transição. A redação
+  // antiga dizia "entrou em estado HANDOFF" a cada mensagem de alguém que já
+  // estava em HANDOFF há dias — e fez a gente procurar um bug de entrega
+  // durante um bom tempo quando o sistema estava fazendo exatamente o que devia.
+  console.log(`[flow] mensagem de ${from} chegou com o lead em estado ${lead.state}`);
 
   // PRIORIDADE 1 — sinal de crise/risco, por palavra-chave.
   // Roda ANTES da IA, sempre, de propósito: esta checagem não depende de rede,
