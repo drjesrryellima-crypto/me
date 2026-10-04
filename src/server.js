@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const { handleIncomingMessage } = require('./flow');
 const { iniciarAgendador } = require('./followup');
+const { iniciarVigiaDeHandoff } = require('./vigia-handoff');
 const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
 const { exigirAssinatura, avisarSeSemAppSecret } = require('./assinatura');
 const { jaProcessado } = require('./dedupe');
@@ -148,4 +149,5 @@ app.listen(PORT, () => {
   assistente.avisarSeDesligada();
   telegram.avisarSeDesligado();
   iniciarAgendador();
+  iniciarVigiaDeHandoff();
 });

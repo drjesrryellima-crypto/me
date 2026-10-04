@@ -240,12 +240,38 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## O handoff que ninguém atendeu
+
+O alerta de crise dispara **uma vez**. Celular no silencioso, consulta em
+andamento, notificação arrastada sem ler — e o sistema ficava calado para
+sempre. O paciente ouviu "o Dr. Jesrryel vai te procurar" e esperava. Era o
+pior modo de falha que sobrou: silencioso, e pior justamente em crise.
+
+Agora um vigia checa de 10 em 10 minutos (`src/handoff-parado.js`) e insiste:
+
+| | Espera | Repete até | Madrugada |
+|---|---|---|---|
+| Crise | 20 min | 6 vezes (~2h) | **avisa** |
+| Handoff comum | 4h | 2 vezes | espera 8h |
+
+Crise não respeita horário de silêncio — é o ponto do recurso. Handoff comum
+respeita: acordar o médico às 3h por um lead gasta a confiança no alerta, e
+alerta que a gente aprende a ignorar estraga justamente o de crise.
+
+**Como o aviso para:** responder pelo painel já marca como atendido. Se você
+respondeu pelo **seu celular**, o sistema não tem como ver — aí use o botão
+**Atendido** na linha do lead. As linhas de quem ainda está esperando têm uma
+barra vermelha à esquerda no painel.
+
+O limite existe de propósito: se em duas horas ninguém apareceu, insistir mais
+não resolve, e o paciente já recebeu o 188 na primeira mensagem.
+
 ## Pendências
 
 **Antes de divulgar o número pra paciente**
-- Decidir se o log deve continuar registrando a mensagem do paciente na íntegra
-  (`[webhook] mensagem de <número>: "<texto>"`). Útil pra depurar, mas é
-  conteúdo de saúde mental num log de terceiro.
+- Conferir se `WHATSAPP_APP_SECRET` está definido na Railway. Sem ele o webhook
+  aceita POST de qualquer origem — dá pra injetar mensagem falsa de paciente. O
+  log avisa no boot: filtre por `APP_SECRET`.
 
 ## O app está publicado
 
