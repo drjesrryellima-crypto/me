@@ -5,6 +5,8 @@ const { isCrisisSignal, isBuyingSignal, isPriceQuestion, isOutOfScope } = requir
 const { sendHandoffAlert } = require('./alert');
 const telegram = require('./telegram');
 const { planejarAvisoDeRetorno, montarTexto, camposDeRetorno } = require('./retorno-handoff');
+const { pediuDescadastro, camposDeDescadastro } = require('./descadastro');
+const { linkDaConversa } = require('./link-whatsapp');
 const { appendLeadRow } = require('./sheets');
 const assistente = require('./assistente');
 const { explicarErroMeta } = require('./erros-meta');
@@ -110,6 +112,45 @@ async function handleIncomingMessage({ from, text, nome }) {
       notas: 'RISCO/CRISE detectado — handoff prioritário',
       ultimaMensagem: textoOriginal,
     });
+    return;
+  }
+
+  // PRIORIDADE 1.5 — pedido de descadastro.
+  //
+  // DEPOIS da crise, de propósito. Se a mensagem for sinal de risco, risco
+  // ganha: ninguém é descadastrado no meio de um pedido de socorro. Na prática
+  // as duas listas não se cruzam (descadastro exige a mensagem INTEIRA ser a
+  // palavra), mas a ordem precisa estar certa de qualquer jeito.
+  //
+  // ANTES do silêncio de HANDOFF, também de propósito: quem está com o médico
+  // e pede pra sair tem o mesmo direito de sair. Era o único caminho de saída
+  // que a pessoa tinha, e ficava bloqueado justamente para quem mais tinha
+  // motivo de usá-lo.
+  if (pediuDescadastro(textoOriginal)) {
+    const texto = messages.descadastroConfirmado();
+    await enviar(from, texto);
+    registrarTurno(from, 'assistant', texto);
+    saveLead(from, camposDeDescadastro());
+    console.log(`[descadastro] ${from} pediu para não receber mais mensagens — atendido`);
+    await appendLeadRow(getLead(from));
+    return;
+  }
+
+  // Pessoa já descadastrada que volta a escrever. A automação não reage por
+  // conta própria: o consentimento foi revogado, e um bot que volta a falar
+  // sozinho depois de "pare" é exatamente o que a pessoa pediu para não
+  // acontecer. Mas também não pode ser buraco negro — se ela está escrevendo,
+  // quer alguma coisa. Quem decide é o médico, pelo botão Reativar.
+  if (lead.state === 'DESCADASTRADO') {
+    console.log(`[descadastro] ${from} voltou a escrever depois de se descadastrar — avisando`);
+    await telegram.enviarAlerta(
+      `✉️ DESCADASTRADO VOLTOU A ESCREVER\n` +
+        `Telefone: ${from}\n` +
+        (linkDaConversa(from) ? `Abrir conversa: ${linkDaConversa(from)}\n` : '') +
+        `\nEsta pessoa pediu para não receber mais mensagens, então a automação não respondeu.\n` +
+        `Mensagem: "${textoOriginal}"`
+    );
+    await appendLeadRow(getLead(from));
     return;
   }
 

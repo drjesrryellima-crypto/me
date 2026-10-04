@@ -31,7 +31,7 @@ async function checarFollowups() {
   for (const phone of Object.keys(leads)) {
     const lead = leads[phone];
     if (!lead.followupsAgendados) continue;
-    if (['HANDOFF', 'CLIENTE', 'DESQUALIFICADO'].includes(lead.state)) continue;
+    if (['HANDOFF', 'CLIENTE', 'DESQUALIFICADO', 'DESCADASTRADO'].includes(lead.state)) continue;
     if (!lead.catalogoEnviadoEm) continue;
 
     const dias = diasDesde(lead.catalogoEnviadoEm);
