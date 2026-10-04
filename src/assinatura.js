@@ -11,14 +11,49 @@ const APP_SECRET = process.env.WHATSAPP_APP_SECRET;
 // Compara em tempo constante. Comparação com === vaza, pelo tempo de resposta,
 // quantos bytes iniciais bateram — o que permite adivinhar a assinatura byte a byte.
 function assinaturaConfere(corpoCru, headerRecebido) {
-  if (!APP_SECRET || !corpoCru || typeof headerRecebido !== 'string') return false;
-  if (!headerRecebido.startsWith('sha256=')) return false;
+  return diagnosticar(corpoCru, headerRecebido).ok;
+}
+
+// Diz POR QUE a assinatura não bateu, e a diferença entre os motivos é tudo.
+//
+// "Sem header" é um POST que não veio da Meta: scanner varrendo a internet,
+// curl de teste, link clicado por engano. Esperado e inofensivo.
+//
+// "Header não bate" com a Meta mandando direito é quase sempre uma coisa só:
+// o App Secret colado está errado. E esse caso é grave e silencioso — o bot
+// para de receber TODAS as mensagens e o único sinal é uma linha de log que,
+// na redação antiga, era idêntica à do scanner.
+//
+// O segredo nunca entra na mensagem: o motivo é dito, o valor não.
+function diagnosticar(corpoCru, headerRecebido) {
+  if (!APP_SECRET) return { ok: false, motivo: 'WHATSAPP_APP_SECRET não definido' };
+  if (!corpoCru || !corpoCru.length) return { ok: false, motivo: 'corpo vazio' };
+  if (typeof headerRecebido !== 'string' || !headerRecebido) {
+    return {
+      ok: false,
+      motivo: 'sem header x-hub-signature-256 — este POST não veio da Meta (scanner, curl ou link)',
+      daMeta: false,
+    };
+  }
+  if (!headerRecebido.startsWith('sha256=')) {
+    return { ok: false, motivo: 'header x-hub-signature-256 em formato inesperado', daMeta: false };
+  }
 
   const esperado = 'sha256=' + crypto.createHmac('sha256', APP_SECRET).update(corpoCru).digest('hex');
   const a = Buffer.from(headerRecebido);
   const b = Buffer.from(esperado);
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return {
+      ok: false,
+      motivo:
+        'a assinatura não confere com o WHATSAPP_APP_SECRET configurado. ' +
+        'Se as mensagens pararam de chegar, é quase certo que o App Secret colado está ' +
+        'errado ou é de outro app — confira em developers.facebook.com → seu app → ' +
+        'Configurações → Básico',
+      daMeta: true,
+    };
+  }
+  return { ok: true, motivo: 'assinatura confere' };
 }
 
 // Com WHATSAPP_APP_SECRET definido, exige assinatura válida em todo POST.
@@ -29,8 +64,13 @@ function assinaturaConfere(corpoCru, headerRecebido) {
 function exigirAssinatura(req, res, next) {
   if (!APP_SECRET) return next();
 
-  if (!assinaturaConfere(req.rawBody, req.get('x-hub-signature-256'))) {
-    console.warn('[webhook] POST rejeitado: assinatura ausente ou inválida');
+  const diagnostico = diagnosticar(req.rawBody, req.get('x-hub-signature-256'));
+  if (!diagnostico.ok) {
+    // Assinatura que não bate é grito; POST sem header nenhum é ruído da
+    // internet e não merece o mesmo destaque — se os dois saem iguais, o
+    // importante some no meio do barulho.
+    const prefixo = diagnostico.daMeta ? '[webhook] ⚠️  POST REJEITADO' : '[webhook] POST rejeitado';
+    console.warn(`${prefixo}: ${diagnostico.motivo}`);
     return res.sendStatus(403);
   }
   return next();
@@ -53,4 +93,10 @@ function webhookProtegido() {
   return Boolean(s && s.trim());
 }
 
-module.exports = { exigirAssinatura, assinaturaConfere, avisarSeSemAppSecret, webhookProtegido };
+module.exports = {
+  exigirAssinatura,
+  assinaturaConfere,
+  diagnosticar,
+  avisarSeSemAppSecret,
+  webhookProtegido,
+};

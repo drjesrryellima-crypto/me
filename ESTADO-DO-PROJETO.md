@@ -242,6 +242,31 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 
 ## "O bot parou de responder" — leia isto primeiro
 
+**Causa nova desde 04/10/2026: App Secret errado.** Com `WHATSAPP_APP_SECRET`
+definido, todo POST da Meta é conferido. Se o valor colado estiver errado ou
+for de outro app, **nada entra** — o bot fica mudo com todo mundo. O log diz
+qual é o caso:
+
+```
+[webhook] ⚠️  POST REJEITADO: a assinatura não confere com o WHATSAPP_APP_SECRET
+configurado. Se as mensagens pararam de chegar, é quase certo que o App Secret
+colado está errado ou é de outro app — confira em developers.facebook.com → ...
+```
+
+Isso é **diferente** de:
+
+```
+[webhook] POST rejeitado: sem header x-hub-signature-256 — este POST não veio
+da Meta (scanner, curl ou link)
+```
+
+O segundo é ruído da internet e não precisa de ação. O primeiro é configuração
+quebrada. Até 04/10/2026 os dois saíam com a mesma frase.
+
+App Secret do app: developers.facebook.com/apps/`1364610259160568`/settings/basic/
+
+
+
 Quase sempre não parou: **o lead está em HANDOFF**, e aí a automação fica
 calada de propósito. O log mostra assim:
 
