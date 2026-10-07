@@ -130,16 +130,29 @@ function matchesAny(text, phrases) {
   return phrases.some((phrase) => normalized.includes(normalize(phrase)));
 }
 
+// A pessoa puxou assunto de dinheiro? Usado para decidir se a assistente pode
+// falar de valor NESTA resposta — ela só informa preço quando perguntam.
+const DINHEIRO_PHRASES = [
+  'quanto custa', 'quanto fica', 'quanto sai', 'quanto e', 'quanto seria',
+  'qual o valor', 'qual valor', 'valor da consulta', 'valor da sessao',
+  'qual o preco', 'qual preco', 'preco da consulta', 'quanto cobra',
+  'me passa o valor', 'valores', 'tabela', 'investimento',
+  'pix', 'cartao', 'parcel', 'pagamento', 'pagar', 'dinheiro', 'desconto',
+  'caro', 'barato', 'cabe no meu bolso', 'quanto vou pagar',
+];
+
 module.exports = {
   isCrisisSignal: (text) => matchesAny(text, CRISIS_PHRASES),
   isBuyingSignal: (text) => matchesAny(text, BUYING_PHRASES),
   isPrecoDoPlano: (text) => matchesAny(text, PRECO_PLANO_PHRASES),
   isPedidoDeAgendamento: (text) => matchesAny(text, AGENDAMENTO_PHRASES),
   isOutOfScope: (text) => matchesAny(text, OUT_OF_SCOPE_PHRASES),
+  perguntouDeDinheiro: (text) => matchesAny(text, DINHEIRO_PHRASES),
   CRISIS_PHRASES,
   BUYING_PHRASES,
   PRECO_PLANO_PHRASES,
   FECHAMENTO_PHRASES,
   AGENDAMENTO_PHRASES,
   OUT_OF_SCOPE_PHRASES,
+  DINHEIRO_PHRASES,
 };

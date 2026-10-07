@@ -11,11 +11,24 @@ const { linkDaConversa } = require('./link-whatsapp');
 const { appendLeadRow } = require('./sheets');
 const assistente = require('./assistente');
 const { explicarErroMeta } = require('./erros-meta');
+const { registrarEnvio } = require('./freio');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
 // salvo — senão perdemos o rastro da conversa. O erro fica só no log.
 async function enviar(to, texto) {
+  // O freio vem ANTES da chamada à Meta: o que ele impede é a mensagem chegar
+  // na pessoa, não a API aceitar. Ver src/freio.js para o episódio que o
+  // motivou (21 mensagens em 5 segundos para quem estava chorando).
+  const { liberado, enviadas } = registrarEnvio(to);
+  if (!liberado) {
+    console.error(
+      `[freio] 🚨 ENVIO BLOQUEADO para ${to}: já saíram ${enviadas} mensagens no último minuto. ` +
+        'Isto é SEMPRE bug — reenvio da Meta, réplica duplicada ou laço. Investigue o motivo.'
+    );
+    return;
+  }
+
   try {
     await sendText(to, texto);
     // Registrar o SUCESSO também, não só a falha. Sem esta linha, "nada no log"
