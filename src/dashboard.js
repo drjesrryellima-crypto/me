@@ -17,10 +17,19 @@ const PAGE = path.join(__dirname, '..', 'public', 'dashboard.html');
 // saúde. Como o README manda rodar tudo atrás de um ngrok público, servir isso
 // sem senha vazaria os leads pra quem descobrisse a URL. Então: sem
 // DASHBOARD_TOKEN definido, o dashboard simplesmente não sobe.
+// Os dois lados são aparados antes de comparar.
+//
+// Um espaço ou quebra de linha sobrando no valor colado no painel da Railway
+// derrubava o acesso com "token inválido" — e não existe como alguém
+// descobrir isso olhando a tela: os dois valores PARECEM idênticos. Aparar não
+// enfraquece nada (ninguém escolhe um segredo cuja força está num espaço no
+// fim) e remove uma classe inteira de erro indepurável.
+const aparar = (valor) => (typeof valor === 'string' ? valor.trim() : '');
+
 function tokenValido(recebido) {
-  if (!recebido || typeof recebido !== 'string') return false;
-  const a = Buffer.from(recebido);
-  const b = Buffer.from(TOKEN);
+  const a = Buffer.from(aparar(recebido));
+  const b = Buffer.from(aparar(TOKEN));
+  if (!a.length || !b.length) return false;
   if (a.length !== b.length) return false;
   return crypto.timingSafeEqual(a, b);
 }
@@ -35,8 +44,24 @@ function exigirToken(req, res, next) {
     });
   }
   const recebido = req.get('x-dashboard-token') || req.query.token;
+  if (!recebido) {
+    return res.status(401).json({
+      erro: 'token ausente',
+      comoResolver: 'Abra /dashboard?token=SUA_SENHA, com a senha de DASHBOARD_TOKEN.',
+    });
+  }
   if (!tokenValido(recebido)) {
-    return res.status(401).json({ erro: 'token inválido ou ausente' });
+    // "inválido" sozinho não ajuda ninguém: os dois valores parecem iguais na
+    // tela. As duas causas reais são sempre as mesmas, e dizê-las aqui evita
+    // uma hora de caça.
+    return res.status(401).json({
+      erro: 'token não confere com DASHBOARD_TOKEN',
+      comoResolver:
+        'Duas causas quase sempre: (1) a senha tem caractere que o navegador corta ' +
+        'ou transforma — #, &, +, %, espaço. Use só letras, números e hífen. ' +
+        '(2) sobrou espaço no começo ou no fim do valor salvo na Railway. ' +
+        'Na dúvida, defina uma senha nova só com letras, números e hífen.',
+    });
   }
   return next();
 }

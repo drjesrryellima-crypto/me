@@ -240,6 +240,24 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## "token inválido" no painel
+
+O painel abre em `/dashboard?token=SUA_SENHA`, com a senha de `DASHBOARD_TOKEN`.
+
+Se recusar, a própria mensagem diz qual é o caso. As duas causas reais:
+
+1. **Caractere que o navegador corta ou transforma** na senha: `#`, `&`, `+`,
+   `%`, espaço. Com `#`, tudo depois vira âncora e nem chega no servidor.
+   **Use só letras, números e hífen.**
+2. **Espaço sobrando** no valor salvo na Railway. Desde 07/10/2026 os dois
+   lados são aparados antes de comparar — antes disso um espaço invisível
+   derrubava o acesso e não havia como descobrir olhando a tela, porque os
+   dois valores parecem idênticos.
+
+Perdeu a senha? Não precisa recuperar: crie `DASHBOARD_TOKEN` de novo com um
+valor novo em Variables e dê Deploy. Depois salve o link pronto, com o token,
+nos favoritos do celular.
+
 ## O que a assistente sabe responder sozinha
 
 Até 04/10/2026 ela não sabia quase nada: o prompt mandava não inventar
