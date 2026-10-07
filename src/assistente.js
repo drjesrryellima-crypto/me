@@ -177,6 +177,13 @@ const PROIBIDO_SEMPRE = [
 const ASSUNTO_DO_PLANO = /(recome[çc]o|const[âa]ncia|programa|acompanhamento)/i;
 const FALA_DE_DINHEIRO = /(r\$|reais|custa|pre[cç]o|valor|investimento|mensalidade)/i;
 
+// Mais largo que o de cima de propósito. O de cima procura preço de PROGRAMA
+// escapando numa frase; este procura qualquer menção a dinheiro na resposta,
+// para decidir se ela podia falar disso agora. A frase que motivou o teste —
+// "dá pra parcelar no cartão, viu?" — não tem nenhuma palavra do primeiro.
+const MENCIONA_DINHEIRO =
+  /(r\$|reais|custa|pre[cç]o|valor|investimento|mensalidade|parcel|pix|cart[ãa]o|pagamento|pagar|dinheiro|desconto)/i;
+
 // Todo valor em reais que aparece no texto, como número.
 function valoresCitados(texto) {
   const achados = [];
@@ -190,11 +197,30 @@ function valoresCitados(texto) {
 }
 
 /**
+ * @param {string} texto a resposta que a assistente quer mandar
+ * @param {{perguntaDoLead?: string}} [contexto] a última fala do paciente
  * @returns {boolean} se a resposta não pode ser enviada como está
  */
-function violaCompliance(texto) {
+function violaCompliance(texto, contexto = {}) {
   const t = String(texto || '');
   if (PROIBIDO_SEMPRE.some((re) => re.test(t))) return true;
+
+  // Preço só quando perguntam — e agora isso é código, não só instrução no
+  // prompt.
+  //
+  // Em 07/10/2026 a assistente respondeu "A consulta é de 1 hora e dá pra
+  // parcelar no cartão, viu?" a alguém que acabara de contar que chorou ao
+  // abrir uma caixa de fotos da família. Ninguém tinha perguntado nada sobre
+  // dinheiro. O prompt já proibia; o modelo fez assim mesmo.
+  //
+  // Falar de preço sem ser perguntado, nesse momento, é pior do que não
+  // responder: transforma um desabafo em balcão de vendas.
+  if ('perguntaDoLead' in contexto) {
+    const { perguntouDeDinheiro } = require('./triggers');
+    if (MENCIONA_DINHEIRO.test(t) && !perguntouDeDinheiro(contexto.perguntaDoLead || '')) {
+      return true;
+    }
+  }
 
   // Qualquer valor que não seja o da consulta avulsa é invenção do modelo ou
   // preço de programa. Os dois são motivo de barrar.
@@ -278,9 +304,13 @@ async function responder({ lead, texto }) {
       return null;
     }
 
-    if (dados.intencao === 'conversando' && violaCompliance(dados.resposta)) {
+    if (dados.intencao === 'conversando' && violaCompliance(dados.resposta, { perguntaDoLead: texto })) {
+      // Sem o texto da resposta: ela parafraseia o que o paciente contou, e o
+      // log da Railway é de terceiro. O motivo e o tamanho bastam pra depurar.
       console.warn(
-        `[assistente] resposta barrada por compliance (preço/"plano"/"consulta psiquiátrica") — caindo no fluxo determinístico. Texto: "${dados.resposta}"`
+        `[assistente] resposta barrada por compliance (${dados.resposta.length} caracteres) — ` +
+          'caindo no fluxo determinístico. Causas: preço sem terem perguntado, preço de ' +
+          'programa, valor inventado, parcelas inventadas, "plano", "consulta psiquiátrica".'
       );
       return null;
     }

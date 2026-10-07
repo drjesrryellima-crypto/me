@@ -76,7 +76,14 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     const entry = req.body.entry?.[0];
     const change = entry?.changes?.[0];
     const value = change?.value;
-    const message = value?.messages?.[0];
+    // TODAS as mensagens do lote, não só a primeira.
+    //
+    // A Meta agrupa mensagens que chegam juntas num único POST. Lendo só
+    // messages[0], quem escrevia três linhas seguidas — "oi", "você está aí?",
+    // "preciso falar" — tinha duas delas descartadas em silêncio: não iam para
+    // o histórico, não contavam para o alerta, não existiam para o sistema.
+    const lote = value?.messages || [];
+    const message = lote[0];
 
     if (!message) {
       // Não é mensagem nova — é o aviso de entrega. Ele diz se a mensagem que
@@ -114,8 +121,21 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     // consultório não controla. O que serve pra depurar é saber que a mensagem
     // chegou, de quem e quando; o conteúdo vive na planilha e no painel, que
     // são do médico e têm senha.
-    console.log(`[webhook] mensagem de ${from} (${text.length} caracteres)`);
+    console.log(
+      `[webhook] mensagem de ${from} (${text.length} caracteres)` +
+        (lote.length > 1 ? ` — lote de ${lote.length}` : '')
+    );
     await handleIncomingMessage({ from, text, nome: nomePerfil });
+
+    // As demais do mesmo lote, em ordem e uma de cada vez: processar em
+    // paralelo embaralharia a máquina de estados, que é sequencial por
+    // natureza. Cada uma passa pelo dedupe sozinha.
+    for (const extra of lote.slice(1)) {
+      if (jaProcessado(extra.id)) continue;
+      const textoExtra = extra.text?.body || '';
+      console.log(`[webhook] mensagem de ${extra.from} (${textoExtra.length} caracteres) — mesma remessa`);
+      await handleIncomingMessage({ from: extra.from, text: textoExtra, nome: nomePerfil });
+    }
   } catch (err) {
     // err.message sozinho é "Request failed with status code 400" — não diz a
     // causa. O motivo real vem no corpo da resposta da Meta.

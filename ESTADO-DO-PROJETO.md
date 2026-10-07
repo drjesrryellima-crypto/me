@@ -240,6 +240,43 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## O dia das 21 mensagens (07/10/2026)
+
+Um paciente recebeu **21 mensagens do bot em 5 segundos**, no meio de uma
+conversa sobre uma caixa de fotos de família que o tinha feito chorar. Várias
+eram respostas diferentes à mesma fala dele; uma era a mensagem de
+boas-vindas, fora de ordem; e uma dizia *"A consulta é de 1 hora e dá pra
+parcelar no cartão, viu?"* — sem ninguém ter perguntado nada sobre dinheiro.
+
+Três mudanças saíram disso. As duas primeiras são certezas; a terceira é um
+freio que vale **seja qual for a causa**.
+
+**1. Preço só quando perguntam — agora em código.** O prompt já proibia e o
+modelo fez assim mesmo. `violaCompliance` recebe a fala do paciente e barra
+qualquer menção a dinheiro na resposta quando ele não puxou o assunto. Falar
+de preço num desabafo é pior que não responder: transforma a conversa em
+balcão de vendas.
+
+**2. O webhook lia só a PRIMEIRA mensagem do lote.** A Meta agrupa mensagens
+que chegam juntas num POST só. Quem escrevia "oi" / "você está aí?" / "preciso
+falar" tinha duas descartadas em silêncio — fora do histórico, fora do alerta,
+inexistentes para o sistema. Agora o lote inteiro é processado, em ordem, cada
+uma passando pelo dedupe.
+
+**3. Freio de envio** (`src/freio.js`): no máximo **3 mensagens por pessoa por
+minuto**. Não conserta a causa — garante que o pior caso seja constrangedor em
+vez de assustador. O contador sobrevive a reinício, porque o reenvio da Meta
+atravessa deploy.
+
+**Um `[freio] 🚨 ENVIO BLOQUEADO` no log é SEMPRE bug.** Quando aparecer,
+procure: reenvio da Meta por timeout, réplica duplicada do serviço, ou laço.
+
+**Causa raiz ainda não confirmada.** As suspeitas, em ordem: reenvio da Meta
+acumulado durante os vários deploys daquele dia, mais de uma réplica do
+serviço rodando, ou `processados.json` perdido. Para fechar, é preciso o log
+da Railway na janela do ocorrido — procurando se cada `[webhook] mensagem` tem
+id distinto e se aparece `já processado`.
+
 ## "token inválido" no painel
 
 O painel abre em `/dashboard?token=SUA_SENHA`, com a senha de `DASHBOARD_TOKEN`.
