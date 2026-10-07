@@ -271,11 +271,24 @@ atravessa deploy.
 **Um `[freio] 🚨 ENVIO BLOQUEADO` no log é SEMPRE bug.** Quando aparecer,
 procure: reenvio da Meta por timeout, réplica duplicada do serviço, ou laço.
 
-**Causa raiz ainda não confirmada.** As suspeitas, em ordem: reenvio da Meta
-acumulado durante os vários deploys daquele dia, mais de uma réplica do
-serviço rodando, ou `processados.json` perdido. Para fechar, é preciso o log
-da Railway na janela do ocorrido — procurando se cada `[webhook] mensagem` tem
-id distinto e se aparece `já processado`.
+**Causa raiz ainda não confirmada**, e o log daquele momento se perdeu: cada
+deploy da Railway tem seu próprio fluxo, e o das 13:10 ficou no deploy
+anterior. Para ler um log antigo: aba **Deployments** → o deploy que estava
+ativo na hora → **Deploy Logs**.
+
+Suspeitas, em ordem: mais de uma instância do serviço atendendo o webhook
+(cada uma com seu próprio `processados.json`), reenvio da Meta acumulado nos
+vários deploys daquele dia, ou o arquivo de dedupe perdido.
+
+**A próxima vez responde sozinha.** Toda linha de entrega agora leva a marca
+do processo que a escreveu: `[webhook:a3f9c1] mensagem de ...`. **Dois códigos
+diferentes na mesma janela são prova de instância duplicada**; um só descarta
+a hipótese e aponta para reenvio.
+
+**Vale conferir agora, sem esperar incidente:** Railway → serviço `me` →
+**Settings** → procure **Replicas**. Tem que ser **1**. Com volume montado a
+Railway normalmente impede mais de uma, mas é a verificação mais barata que
+existe para a suspeita principal.
 
 ## "token inválido" no painel
 

@@ -91,8 +91,8 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
       // isso calado deixava "a Meta aceitou o envio" e "a pessoa recebeu"
       // indistinguíveis.
       for (const linha of descreverStatus(value)) {
-        if (linha.includes('FALHOU')) console.error(`[webhook] ${linha}`);
-        else console.log(`[webhook] ${linha}`);
+        if (linha.includes('FALHOU')) console.error(`[webhook:${INSTANCIA}] ${linha}`);
+        else console.log(`[webhook:${INSTANCIA}] ${linha}`);
       }
       return;
     }
@@ -101,7 +101,7 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     // o reenvio avançaria a máquina de estados uma casa a mais e a resposta do
     // lead cairia no campo errado.
     if (jaProcessado(message.id)) {
-      console.log(`[webhook] evento ${message.id} já processado — reenvio da Meta, ignorado.`);
+      console.log(`[webhook:${INSTANCIA}] evento ${message.id} já processado — reenvio da Meta, ignorado.`);
       return;
     }
 
@@ -109,7 +109,7 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     // Se não, a resposta é aceita pela Meta e recusada na entrega, com um
     // código que aponta pro lugar errado.
     const alerta = conferirNumeroQueRecebeu(value);
-    if (alerta) console.warn(`[webhook] ${alerta}`);
+    if (alerta) console.warn(`[webhook:${INSTANCIA}] ${alerta}`);
 
     const from = message.from; // número do lead
     const text = message.text?.body || '';
@@ -122,7 +122,7 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     // chegou, de quem e quando; o conteúdo vive na planilha e no painel, que
     // são do médico e têm senha.
     console.log(
-      `[webhook] mensagem de ${from} (${text.length} caracteres)` +
+      `[webhook:${INSTANCIA}] mensagem de ${from} (${text.length} caracteres)` +
         (lote.length > 1 ? ` — lote de ${lote.length}` : '')
     );
     await handleIncomingMessage({ from, text, nome: nomePerfil });
@@ -133,13 +133,15 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
     for (const extra of lote.slice(1)) {
       if (jaProcessado(extra.id)) continue;
       const textoExtra = extra.text?.body || '';
-      console.log(`[webhook] mensagem de ${extra.from} (${textoExtra.length} caracteres) — mesma remessa`);
+      console.log(
+        `[webhook:${INSTANCIA}] mensagem de ${extra.from} (${textoExtra.length} caracteres) — mesma remessa`
+      );
       await handleIncomingMessage({ from: extra.from, text: textoExtra, nome: nomePerfil });
     }
   } catch (err) {
     // err.message sozinho é "Request failed with status code 400" — não diz a
     // causa. O motivo real vem no corpo da resposta da Meta.
-    console.error('[webhook] erro ao processar mensagem:', explicarErroMeta(err));
+    console.error(`[webhook:${INSTANCIA}] erro ao processar mensagem:`, explicarErroMeta(err));
   }
 });
 
@@ -152,8 +154,23 @@ app.get('/privacidade', (req, res) => {
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
+// Identidade deste processo, sorteada a cada boot.
+//
+// Em 07/10/2026 um paciente recebeu 21 mensagens em 5 segundos e a principal
+// suspeita — mais de uma instância do serviço atendendo o mesmo webhook, cada
+// uma com seu próprio arquivo de dedupe — não deu pra confirmar nem descartar
+// pelo log: nada ali dizia QUEM tinha respondido.
+//
+// Com esta marca em toda linha de webhook, a próxima vez responde sozinha:
+// dois ids diferentes na mesma janela é prova de instância duplicada; um id só
+// descarta a hipótese e aponta para reenvio da Meta.
+//
+// Sorteado em vez de vir da Railway de propósito: não depende de variável que
+// a plataforma pode renomear, e funciona igual em qualquer lugar.
+const INSTANCIA = Math.random().toString(36).slice(2, 8);
+
 app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`Servidor rodando em http://localhost:${PORT} (instância ${INSTANCIA})`);
   console.log(`Webhook: http://localhost:${PORT}/webhook`);
   console.log(`Política de privacidade: http://localhost:${PORT}/privacidade`);
   console.log(`Dashboard: http://localhost:${PORT}/dashboard?token=...`);
