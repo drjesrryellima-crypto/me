@@ -109,6 +109,8 @@ re-engagement message".
 ## O número do consultório está no ar
 
 **+55 84 99838-7075** — recebe e envia pela API, testado em 29/09/2026.
+**Aprovado pela Meta e totalmente ativo em 11/10/2026**, saindo do estado "em
+análise" em que ficou desde o cadastro.
 
 **Atende qualquer pessoa.** Confirmado com um número que nunca esteve em lista
 de permissão nenhuma: escreveu e foi respondido. É a diferença entre "funciona
@@ -222,9 +224,15 @@ coisa errada.
 | Conta de WhatsApp em uso | `Test WhatsApp Business Account` |
 | Usuário do sistema | `AutomaçãoTriagem` |
 
-**Não apague as outras contas de WhatsApp.** Uma delas guarda o 7075, que está em
-análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
-(`[EM USO]`, `[AGUARDANDO META]`, `[NAO USAR]`) resolve a confusão sem risco.
+**Não apague as outras contas de WhatsApp.** Uma delas guarda o 7075 — agora
+aprovado e ativo (11/10/2026) — e apagar pode desvincular o número. A análise
+da Meta ter terminado reduz o risco, não o elimina: desvincular um número
+aprovado custa mais caro que desvincular um em análise, porque recuperar
+significa refazer a aprovação.
+
+Renomear com prefixo (`[EM USO]`, `[NAO USAR]`) resolve a confusão sem risco
+nenhum, e é o que vale fazer. O prefixo `[AGUARDANDO META]` não serve mais
+para nada — nada está aguardando.
 
 ## Identificadores
 
