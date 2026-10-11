@@ -28,6 +28,6 @@ test('cada mensagem do lote passa pelo dedupe', () => {
 // Em paralelo embaralharia a máquina de estados, que é sequencial.
 test('as mensagens do lote são processadas em sequência', () => {
   const trecho = server.slice(server.indexOf('lote.slice(1)'), server.indexOf('lote.slice(1)') + 500);
-  assert.match(trecho, /await handleIncomingMessage/);
+  assert.match(trecho, /await receberMensagem/);
   assert.doesNotMatch(trecho, /Promise\.all/);
 });

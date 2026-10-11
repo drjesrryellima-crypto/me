@@ -240,6 +240,35 @@ análise na Meta, e apagar pode desvincular o número. Renomear com prefixo
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## O bot espera você terminar de escrever
+
+Quem desabafa escreve em pedaços:
+
+```
+abri uma caixa hoje
+tinha foto da minha avó
+chorei que nem criança
+```
+
+São três linhas de um pensamento só. O bot respondia **as três**, separadamente
+— e responder assim mostra que do outro lado não tem ninguém ouvindo, tem uma
+máquina reagindo a estímulo.
+
+Agora ele junta o que chegou, espera **8 segundos de silêncio** e responde uma
+vez só (`src/agrupador.js`). Teto de **30 segundos** para quem não para de
+escrever: silêncio para quem está em sofrimento é pior que uma resposta no meio.
+
+Ajustável por `AGRUPADOR_ESPERA_MS` e `AGRUPADOR_ESPERA_MAXIMA_MS`.
+
+**Sinal de crise e PARAR furam a fila.** Esperar 8 segundos de silêncio para
+responder a quem disse que quer se matar é exatamente o tipo de otimização que
+não se faz. O que já estava no buffer entra junto na mesma chamada, senão
+ficaria pendurado num timer cancelado.
+
+**O buffer é de memória, e tudo bem:** quem dispara é um timer deste processo,
+então persistir não ajudaria. A mensagem em si não se perde — só a resposta,
+numa janela de 8 segundos, se o processo reiniciar exatamente ali.
+
 ## O dia das 21 mensagens (07/10/2026)
 
 Um paciente recebeu **21 mensagens do bot em 5 segundos**, no meio de uma
@@ -271,7 +300,14 @@ atravessa deploy.
 **Um `[freio] 🚨 ENVIO BLOQUEADO` no log é SEMPRE bug.** Quando aparecer,
 procure: reenvio da Meta por timeout, réplica duplicada do serviço, ou laço.
 
-**Causa raiz ainda não confirmada**, e o log daquele momento se perdeu: cada
+**Causa raiz confirmada em 11/10/2026: não era duplicação, era ritmo.** O
+paciente mandou muitas mensagens seguidas e o bot respondeu uma por uma. As
+duas hipóteses de duplicação foram descartadas — `Replicas` é **1**, e o
+código não tem caminho que multiplique (um ponto de entrada, uma chamada de IA
+por mensagem, sem retry, dedupe síncrono gravado em disco antes de processar).
+O conserto é o agrupamento, na seção acima.
+
+O que segue valeu mesmo assim, como rede: **causa raiz, à época, não confirmada**, e o log daquele momento se perdeu: cada
 deploy da Railway tem seu próprio fluxo, e o das 13:10 ficou no deploy
 anterior. Para ler um log antigo: aba **Deployments** → o deploy que estava
 ativo na hora → **Deploy Logs**.
