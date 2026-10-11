@@ -12,6 +12,7 @@ const { appendLeadRow } = require('./sheets');
 const assistente = require('./assistente');
 const { explicarErroMeta } = require('./erros-meta');
 const { registrarEnvio } = require('./freio');
+const { agrupar, esvaziar } = require('./agrupador');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
@@ -361,4 +362,37 @@ async function fluxoDeterministico(from, lead, textoOriginal) {
   await appendLeadRow(getLead(from));
 }
 
-module.exports = { handleIncomingMessage, aplicarRespostaDaIA, fluxoDeterministico };
+// Porta de entrada do webhook.
+//
+// Separada de handleIncomingMessage de propósito: aqui se decide QUANDO
+// responder, lá se decide O QUE responder. Quem chama de teste continua
+// podendo pular a espera chamando handleIncomingMessage direto.
+async function receberMensagem({ from, text, nome }) {
+  const texto = text || '';
+
+  // Crise e pedido de descadastro FURAM A FILA.
+  //
+  // Esperar 8 segundos de silêncio para responder a quem disse que quer se
+  // matar é exatamente o tipo de otimização que não se faz. E quem escreveu
+  // PARAR já disse tudo o que tinha a dizer — não há o que agrupar.
+  //
+  // O que já estava no buffer entra junto, senão ficaria pendurado num timer
+  // que foi cancelado e nunca mais dispararia.
+  if (isCrisisSignal(texto) || pediuDescadastro(texto)) {
+    const acumulado = esvaziar(from);
+    const juntado = [...acumulado, texto].join('\n');
+    if (acumulado.length) {
+      console.log(`[agrupador] ${from}: urgência furou a fila com ${acumulado.length} pendente(s)`);
+    }
+    return handleIncomingMessage({ from, text: juntado, nome });
+  }
+
+  agrupar(from, texto, (juntado) => handleIncomingMessage({ from, text: juntado, nome }));
+}
+
+module.exports = {
+  receberMensagem,
+  handleIncomingMessage,
+  aplicarRespostaDaIA,
+  fluxoDeterministico,
+};

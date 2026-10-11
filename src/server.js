@@ -1,7 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
-const { handleIncomingMessage } = require('./flow');
+const { receberMensagem } = require('./flow');
 const { iniciarAgendador } = require('./followup');
 const { iniciarVigiaDeHandoff } = require('./vigia-handoff');
 const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
@@ -125,7 +125,7 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
       `[webhook:${INSTANCIA}] mensagem de ${from} (${text.length} caracteres)` +
         (lote.length > 1 ? ` — lote de ${lote.length}` : '')
     );
-    await handleIncomingMessage({ from, text, nome: nomePerfil });
+    await receberMensagem({ from, text, nome: nomePerfil });
 
     // As demais do mesmo lote, em ordem e uma de cada vez: processar em
     // paralelo embaralharia a máquina de estados, que é sequencial por
@@ -136,7 +136,7 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
       console.log(
         `[webhook:${INSTANCIA}] mensagem de ${extra.from} (${textoExtra.length} caracteres) — mesma remessa`
       );
-      await handleIncomingMessage({ from: extra.from, text: textoExtra, nome: nomePerfil });
+      await receberMensagem({ from: extra.from, text: textoExtra, nome: nomePerfil });
     }
   } catch (err) {
     // err.message sozinho é "Request failed with status code 400" — não diz a
