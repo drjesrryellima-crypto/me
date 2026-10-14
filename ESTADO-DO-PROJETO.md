@@ -248,6 +248,33 @@ para nada — nada está aguardando.
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## O follow-up não dispara rajada ao ligar o pagamento
+
+Enquanto os templates não estão configurados, cada etapa vencida era pulada
+**sem registro**. O estrago estava armado para o dia em que o pagamento na Meta
+fosse ligado: um lead com o catálogo enviado há 30 dias tem `dias = 30`, maior
+que 2, 3, 5 **e** 7 — e receberia os quatro follow-ups na primeira rodada.
+Mensagens pagas, atrasadas semanas, em rajada, para quem já tinha esfriado.
+
+Mesma forma do episódio das 21 mensagens, com duas pioras: custa dinheiro e vai
+para quem não está mais ouvindo.
+
+Desde 14/10/2026 (`src/followup-plano.js`):
+
+- **Uma etapa por rodada, por lead.** O agendador roda uma vez por dia; duas de
+  uma vez não é conversa, é disparo.
+- **Etapa atrasada mais de 3 dias é pulada, não enviada.** "Passando pra saber
+  se ficou dúvida" três semanas depois não retoma conversa — só lembra a pessoa
+  de que ela é uma linha numa planilha. O que foi pulado fica em
+  `followupsPulados`, senão venceria de novo em toda rodada, para sempre.
+- **O freio vale para template também.** Ele morava só no `enviar()` do
+  `flow.js`, que este caminho não usa — era um buraco por onde uma rajada paga
+  passaria inteira.
+
+**Antes de ligar o pagamento**, vale abrir o painel e ver quantos leads estão em
+`CATALOGO_ENVIADO` com data antiga. Eles serão marcados como pulados na primeira
+rodada, sem receber nada — que é o certo, mas é bom saber que vai acontecer.
+
 ## O bot espera você terminar de escrever
 
 Quem desabafa escreve em pedaços:
