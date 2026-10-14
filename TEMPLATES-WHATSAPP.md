@@ -126,6 +126,25 @@ aviso no log — não quebra nada.
 **Antes de tudo isso:** a Meta exige forma de pagamento cadastrada na conta de
 WhatsApp Business. Sem isso, template aprovado não envia (erro `131042`).
 
+## Confira o IDIOMA de cada um, não só o nome
+
+Para a Meta um template é **nome + idioma**, não só nome. O código pede todos
+em `pt_BR` (`sendTemplate` em `src/whatsapp.js`). Um template com o texto em
+português mas registrado como **English** não é encontrado: o envio é recusado
+e aquele follow-up some sem nunca ter saído.
+
+Aconteceu em 14/10/2026: os quatro foram criados e ficaram ativos, mas D+5 e
+D+7 saíram marcados como English. Texto em português, idioma inglês — a lista
+de templates mostra os dois "Ativo", e nada na tela diz que metade da sequência
+não ia funcionar. Só apareceu porque o idioma estava num print.
+
+A Meta não checa se o texto bate com o idioma declarado, então esse erro não dá
+aviso nenhum. **Depois de criar, olhe a coluna Idioma da lista.** Os quatro
+precisam dizer Portuguese (BR).
+
+Corrigir é recriar o template com o mesmo nome em Portuguese (BR) — a versão em
+inglês pode ficar lá, sem uso, e a variável na Railway continua a mesma.
+
 ---
 
 ## Descadastro: agora pode oferecer
