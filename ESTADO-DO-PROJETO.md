@@ -106,6 +106,38 @@ O botão só aparece dentro da janela de 24h da Meta. Fora dela o texto livre é
 recusado, e o painel diz isso em português em vez de devolver "131047
 re-engagement message".
 
+## Como ler a conversa que o paciente teve com o bot
+
+Botão **Conversa**, na linha do lead no painel. Abre a conversa inteira: fala do
+paciente, fala da assistente e o que você mesmo mandou pelo painel, cada uma
+com rótulo e hora.
+
+**Este é o único lugar onde essa conversa pode ser lida**, e isso não é
+limitação do painel:
+
+- o 7075 é número de **Cloud API**. Não tem app de WhatsApp instalado, e não
+  pode ter — instalar derruba o webhook e a automação para.
+- a Meta **não dá caixa de entrada** para número de API. O WhatsApp Manager
+  mostra contagem de conversa e custo, não o texto.
+- o log da Railway, **de propósito**, só guarda o tamanho das mensagens. É
+  servidor de terceiro e conversa de paciente sobre saúde mental não fica
+  escrita lá.
+- o `wa.me` do alerta abre a conversa do **7397** (seu celular) com a pessoa —
+  é outra conversa, começa vazia.
+
+Duas coisas que a tela diz e que valem ler:
+
+- **hora só aparece quando foi registrada.** Falas gravadas antes desta versão
+  não têm hora, e o campo vem vazio em vez de mostrar a hora de agora — numa
+  conversa clínica, inventar quando a pessoa falou algo não é detalhe.
+- **guarda as últimas 40 falas.** Numa conversa mais longa que isso o começo
+  não existe mais, e a tela avisa em vez de deixar você concluir que a conversa
+  começou ali.
+
+Abrir a conversa escreve no log `[dashboard] conversa de <numero> aberta (N
+turnos)` — **que** houve acesso, nunca o que foi lido. É dado de saúde: o
+registro de acesso é a favor, o conteúdo no log seria contra.
+
 ## O número do consultório está no ar
 
 **+55 84 99838-7075** — recebe e envia pela API, testado em 29/09/2026.

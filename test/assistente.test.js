@@ -139,3 +139,17 @@ test('não duplica a mensagem atual quando ela já é o último item do históri
   const msgs = montarMensagens(historico, 'gostaria de saber sobre valores');
   assert.deepStrictEqual(msgs, historico);
 });
+
+// O painel passou a guardar 'em' (e já guardava 'autor') em cada turno. A API
+// da Anthropic recusa a requisição inteira se chegar campo desconhecido em
+// messages — e aí o bot para de responder a TODOS os pacientes, não só a um.
+test('campos do painel não vazam para o que vai pra API', () => {
+  const historico = [
+    { role: 'user', content: 'oi', em: '2026-10-14T13:00:00.000Z' },
+    { role: 'assistant', content: 'Olá!', em: '2026-10-14T13:00:05.000Z', autor: 'medico' },
+  ];
+  const msgs = montarMensagens(historico, 'e os horários?');
+  for (const m of msgs) {
+    assert.deepStrictEqual(Object.keys(m).sort(), ['content', 'role']);
+  }
+});

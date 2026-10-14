@@ -112,9 +112,11 @@ test('a conversa fica registrada no histórico pra virar contexto da próxima me
   await aplicarRespostaDaIA(phone, getLead(phone), respostaIA({ resposta: 'Oi! Como posso ajudar?' }), 'oi');
 
   const historico = getLead(phone).historicoConversa || [];
-  assert.deepStrictEqual(historico[historico.length - 1], {
-    role: 'assistant',
-    content: 'Oi! Como posso ajudar?',
-  });
+  const ultimo = historico[historico.length - 1];
+  assert.equal(ultimo.role, 'assistant');
+  assert.equal(ultimo.content, 'Oi! Como posso ajudar?');
+  // 'em' é o que permite o painel mostrar QUANDO cada fala aconteceu. Não vai
+  // para a API (ver montarMensagens no assistente.js), só para a tela.
+  assert.match(ultimo.em, /^\d{4}-\d{2}-\d{2}T/);
   limpar();
 });
