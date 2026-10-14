@@ -8,7 +8,7 @@ const telegram = require('./telegram');
 const { planejarAvisoDeRetorno, montarTexto, camposDeRetorno } = require('./retorno-handoff');
 const { pediuDescadastro, camposDeDescadastro } = require('./descadastro');
 const { linkDaConversa } = require('./link-whatsapp');
-const { appendLeadRow } = require('./sheets');
+const { gravarLeadNaPlanilha } = require('./sheets');
 const assistente = require('./assistente');
 const { explicarErroMeta } = require('./erros-meta');
 const { registrarEnvio } = require('./freio');
@@ -90,7 +90,7 @@ async function encaminharParaHumano(from, { texto, priority, notas, state = 'HAN
       ultimaMensagem,
     });
   }
-  await appendLeadRow(getLead(from));
+  await gravarLeadNaPlanilha(getLead(from));
 }
 
 function classificar(historico) {
@@ -151,7 +151,7 @@ async function handleIncomingMessage({ from, text, nome }) {
     registrarTurno(from, 'assistant', texto);
     saveLead(from, camposDeDescadastro());
     console.log(`[descadastro] ${from} pediu para não receber mais mensagens — atendido`);
-    await appendLeadRow(getLead(from));
+    await gravarLeadNaPlanilha(getLead(from));
     return;
   }
 
@@ -169,7 +169,7 @@ async function handleIncomingMessage({ from, text, nome }) {
         `\nEsta pessoa pediu para não receber mais mensagens, então a automação não respondeu.\n` +
         `Mensagem: "${textoOriginal}"`
     );
-    await appendLeadRow(getLead(from));
+    await gravarLeadNaPlanilha(getLead(from));
     return;
   }
 
@@ -227,7 +227,7 @@ async function handleIncomingMessage({ from, text, nome }) {
       }
     }
 
-    await appendLeadRow(getLead(from));
+    await gravarLeadNaPlanilha(getLead(from));
     return;
   }
 
@@ -311,7 +311,7 @@ async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
   }
 
   saveLead(from, campos);
-  await appendLeadRow(getLead(from));
+  await gravarLeadNaPlanilha(getLead(from));
 }
 
 // O roteiro fixo de antes. Continua sendo o caminho quando a IA está desligada
@@ -363,7 +363,7 @@ async function fluxoDeterministico(from, lead, textoOriginal) {
       return;
   }
 
-  await appendLeadRow(getLead(from));
+  await gravarLeadNaPlanilha(getLead(from));
 }
 
 // Porta de entrada do webhook.

@@ -61,4 +61,25 @@ function opcoesDeAuth(scopes) {
   return { ...resto, scopes };
 }
 
-module.exports = { carregarCredenciais, opcoesDeAuth, VAR_CONTEUDO, VAR_CAMINHO };
+/**
+ * O e-mail da conta de serviço em uso, ou null.
+ *
+ * Serve para o log dizer QUEM tentou escrever quando o Google recusa. "The
+ * caller does not have permission" sem nome do caller manda procurar no lugar
+ * errado: a conta compartilhada na planilha pode não ser a mesma que está na
+ * variável de ambiente, e olhando só o erro ninguém descobre isso.
+ *
+ * É identificador, não segredo — a chave privada nunca sai daqui.
+ */
+function contaEmUso() {
+  const cred = carregarCredenciais();
+  if (!cred) return null;
+  if (cred.credentials) return cred.credentials.client_email || null;
+  try {
+    return JSON.parse(fs.readFileSync(cred.keyFile, 'utf8')).client_email || null;
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { carregarCredenciais, opcoesDeAuth, contaEmUso, VAR_CONTEUDO, VAR_CAMINHO };
