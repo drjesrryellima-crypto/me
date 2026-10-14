@@ -26,6 +26,10 @@ function montar() {
   return { state: require('../src/state'), followup: require('../src/followup'), enviados };
 }
 
+// Mudou em 14/10/2026: um lead de 8 dias NÃO recebe mais os quatro de uma vez.
+// Recebe um só — e as etapas atrasadas demais são puladas, não acumuladas.
+// Mandar os quatro era o estrago armado para o dia em que o pagamento na Meta
+// fosse ligado.
 test('nenhum follow-up manda texto de rascunho para o paciente', async () => {
   const { state, followup, enviados } = montar();
   const oitoDiasAtras = new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString();
@@ -37,7 +41,7 @@ test('nenhum follow-up manda texto de rascunho para o paciente', async () => {
 
   await followup.checarFollowups();
 
-  assert.equal(enviados.length, 4, 'os quatro follow-ups deviam ter saído');
+  assert.equal(enviados.length, 1, `saíram ${enviados.length} follow-ups numa rodada só`);
 
   // Só o que é ENVIADO como texto ao paciente. O JSON inteiro não serve: os
   // colchetes das próprias listas dariam falso positivo.

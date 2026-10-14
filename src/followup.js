@@ -2,6 +2,8 @@ const cron = require('node-cron');
 const { readAll, saveLead } = require('./state');
 const { sendTemplate } = require('./whatsapp');
 const { explicarErroMeta } = require('./erros-meta');
+const { planejarFollowup } = require('./followup-plano');
+const { registrarEnvio } = require('./freio');
 
 // MVP simples: roda uma vez por dia (09:00) e verifica, para cada lead com
 // followupsAgendados = true, quantos dias se passaram desde que o catálogo
@@ -26,70 +28,74 @@ function diasDesde(dataIso) {
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
-async function checarFollowups() {
+async function checarFollowups(agora = new Date()) {
   const leads = readAll();
   for (const phone of Object.keys(leads)) {
     const lead = leads[phone];
-    if (!lead.followupsAgendados) continue;
-    if (['HANDOFF', 'CLIENTE', 'DESQUALIFICADO', 'DESCADASTRADO'].includes(lead.state)) continue;
-    if (!lead.catalogoEnviadoEm) continue;
+    const plano = planejarFollowup(lead, agora);
+    if (plano.acao === 'nada') continue;
 
-    const dias = diasDesde(lead.catalogoEnviadoEm);
-    let enviados = lead.followupsEnviados || [];
-
-    // Os quatro templates cadastrados não têm variável — ver TEMPLATES-WHATSAPP.md.
-    //
-    // Foi decisão, não preguiça. Variável é reprovação a mais na Meta (variável
-    // no começo ou no fim do corpo é recusa automática) e falha a mais no envio:
-    // lead que nunca disse o nome mandaria parâmetro vazio, e a Meta recusa a
-    // mensagem inteira. Pior: o D7 mandava literalmente "[preencher 3 horários]"
-    // para o paciente, porque ninguém nunca preencheu.
-    //
-    // Se um dia um template aprovado tiver {{1}}, é aqui que o valor entra —
-    // com textParams(), e garantindo que nenhum venha vazio.
-    const etapas = [
-      { dia: 2, chave: 'D2', template: process.env.WHATSAPP_TEMPLATE_D2, params: [] },
-      { dia: 3, chave: 'D3', template: process.env.WHATSAPP_TEMPLATE_D3, params: [] },
-      { dia: 5, chave: 'D5', template: process.env.WHATSAPP_TEMPLATE_D5, params: [] },
-      { dia: 7, chave: 'D7', template: process.env.WHATSAPP_TEMPLATE_D7, params: [] },
-    ];
-
-    for (const etapa of etapas) {
-      if (dias < etapa.dia || enviados.includes(etapa.chave)) continue;
-
-      if (!etapa.template) {
-        console.warn(
-          `[followup] WHATSAPP_TEMPLATE_${etapa.chave} não configurado no .env — pulando follow-up ${etapa.chave} para ${phone}. Veja a seção "Limitação importante" do README.`
-        );
-        continue;
-      }
-
-      const components = etapa.params.length ? [{ type: 'body', parameters: etapa.params }] : [];
-
-      // O try é por lead, não pelo lote. Sem ele, um único número que a Meta
-      // recusa (saiu do WhatsApp, template ainda não aprovado, janela vencida)
-      // estoura o await e mata o laço — e TODO MUNDO que vinha depois na fila
-      // fica sem follow-up naquele dia, em silêncio.
-      try {
-        await sendTemplate(phone, etapa.template, TEMPLATE_LANGUAGE, components);
-      } catch (err) {
-        console.error(
-          `[followup] falha ao enviar ${etapa.chave} para ${phone}: ${explicarErroMeta(err)}`
-        );
-        continue;
-      }
-
-      enviados = [...enviados, etapa.chave];
+    if (plano.acao === 'pular') {
+      // Registrado, não enviado. Sem o registro, estas etapas voltariam a
+      // "vencer" em toda rodada seguinte, para sempre.
       saveLead(phone, {
-        followupsEnviados: enviados,
-        state: `FOLLOWUP_${etapa.chave}`,
+        followupsPulados: [...(lead.followupsPulados || []), ...plano.chaves],
+        followupsAgendados: false,
       });
-      console.log(`[followup] ${etapa.chave} enviado para ${phone} (template: ${etapa.template})`);
+      console.log(
+        `[followup] ${phone}: ${plano.chaves.join(', ')} pulado(s) — ${plano.motivo}`
+      );
+      continue;
     }
 
-    if (dias > 7 && enviados.includes('D7')) {
-      saveLead(phone, { state: 'REENGAJAMENTO_MENSAL', followupsAgendados: false });
+    const { etapa, dias } = plano;
+    const template = process.env[etapa.variavel];
+    if (!template) {
+      console.warn(
+        `[followup] ${etapa.variavel} não configurado — pulando ${etapa.chave} para ${phone}. ` +
+          'Veja TEMPLATES-WHATSAPP.md.'
+      );
+      continue;
     }
+
+    // O freio vale para template também. Ele mora no enviar() do flow.js, que
+    // este caminho não usa — era um buraco por onde uma rajada paga passaria
+    // inteira.
+    const { liberado, enviadas } = registrarEnvio(phone);
+    if (!liberado) {
+      console.error(
+        `[freio] 🚨 FOLLOW-UP BLOQUEADO para ${phone}: ${enviadas} mensagens no último minuto.`
+      );
+      continue;
+    }
+
+    // O try é por lead, não pelo lote. Sem ele, um único número que a Meta
+    // recusa (saiu do WhatsApp, template ainda não aprovado, janela vencida)
+    // estoura o await e mata o laço — e TODO MUNDO que vinha depois na fila
+    // fica sem follow-up naquele dia, em silêncio.
+    try {
+      await sendTemplate(phone, template, TEMPLATE_LANGUAGE, []);
+    } catch (err) {
+      console.error(
+        `[followup] falha ao enviar ${etapa.chave} para ${phone}: ${explicarErroMeta(err)}`
+      );
+      continue;
+    }
+
+    saveLead(phone, {
+      followupsEnviados: [...(lead.followupsEnviados || []), etapa.chave],
+      followupsPulados: [...(lead.followupsPulados || []), ...plano.pular],
+      state: `FOLLOWUP_${etapa.chave}`,
+      // Última etapa entregue: encerra a sequência aqui mesmo, sem depender de
+      // uma rodada futura para perceber.
+      ...(etapa.chave === 'D7'
+        ? { state: 'REENGAJAMENTO_MENSAL', followupsAgendados: false }
+        : {}),
+    });
+    console.log(
+      `[followup] ${etapa.chave} enviado para ${phone} (${dias} dias, template: ${template})` +
+        (plano.pular.length ? ` — ${plano.pular.join(', ')} pulado(s) por atraso` : '')
+    );
   }
 }
 
