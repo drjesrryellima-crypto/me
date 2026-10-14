@@ -278,6 +278,30 @@ substância do que o bot sabe dizer.
 **Antes de procurar bug de duplicação no código, confira se não há outra
 automação no ar.** O repositório não é o sistema inteiro.
 
+## O projeto `bot-whatsapp` tem DOIS serviços
+
+| Serviço | O que é |
+|---|---|
+| `me` | o bot deste repositório — webhook, assistente, painel, follow-up do funil |
+| `whatsapp-leads-disparo` | **outro programa, em Python, que não está neste repositório** |
+
+O `whatsapp-leads-disparo` dispara templates pagos para uma lista própria, todo
+dia às 9h de Mossoró, com teto próprio de 50 por dia. Em 14/10/2026 ele saiu do
+modo SIMULAÇÃO para o modo REAL e enviou 50 mensagens na primeira manhã,
+usando os mesmos templates `followup_*` do funil.
+
+**É intencional** — confirmado pelo Dr. Jesrryel em 14/10/2026. Não é bug, não
+é duplicação do `me`, e não deve ser "consertado" por quem encontrar as linhas
+`[disparo]` no log.
+
+Duas consequências de ter dois remetentes no mesmo número:
+
+- **o teto real do dia é a soma dos dois.** O `TETO_TEMPLATES_DIA` daqui (50)
+  não enxerga o que o outro serviço mandou — são contagens separadas.
+- **a nota de qualidade do 7075 é compartilhada.** Disparo para quem não pediu
+  derruba a nota do número que o funil também usa. Acompanhar em WhatsApp
+  Manager → Números de telefone; se cair para Média, é sinal para agir.
+
 ## Onde fica cada coisa
 
 A conta tem 6 projetos na Railway com nome sorteado, 7 contas de WhatsApp com
