@@ -659,19 +659,31 @@ cadastrados na lista de destinatários permitidos. Essa trava é do número de
 teste, não do modo do app. Quem a levanta é ter um número próprio em produção —
 o 7075.
 
-**Da Meta — o que falta para os follow-ups**
+**Os follow-ups entraram no ar em 14/10/2026.** Eram a última parte do sistema
+que não funcionava, e os dois motivos eram de conta, não de código. Os dois
+caíram no mesmo dia:
 
-Os follow-ups D+2/3/5/7 são a única parte do sistema que ainda não funciona, e
-os dois motivos são de conta, não de código:
+- **Forma de pagamento cadastrada na Meta.** Fora da janela de 24h ela só
+  aceita template pré-aprovado, e template é cobrado.
+- **Os 4 templates aprovados e ativos**, com os nomes nas variáveis da Railway:
 
-- **Forma de pagamento.** Fora da janela de 24h a Meta só aceita template
-  pré-aprovado, e template é cobrado. Sem cartão cadastrado, não sai.
-- **Os 4 templates precisam ser cadastrados e aprovados.** Os textos estão na
-  aba TEMPLATES DE NUTRIÇÃO da planilha; os nomes aprovados vão nas variáveis
-  `WHATSAPP_TEMPLATE_D2/D3/D5/D7`.
+| Template | Variável |
+|---|---|
+| `followup_d2_conteudo` | `WHATSAPP_TEMPLATE_D2` |
+| `followup_d3_duvida` | `WHATSAPP_TEMPLATE_D3` |
+| `followup_d5_conteudo` | `WHATSAPP_TEMPLATE_D5` |
+| `followup_d7_conversa` | `WHATSAPP_TEMPLATE_D7` |
 
-Enquanto as variáveis estiverem vazias, cada follow-up é pulado com aviso no
-log — o resto do sistema continua funcionando normalmente.
+O valor é o **nome** do template, não o texto. Variável vazia faz cada etapa
+ser pulada com aviso no log, sem derrubar o resto.
+
+**O disparo é uma vez por dia, às 9h de Mossoró** (`src/followup.js`, ajustável
+por `FOLLOWUP_HORA`). Não é a cada mensagem: ligar as variáveis não manda nada
+na hora, a primeira rodada é na manhã seguinte.
+
+Os dois freios que valem aqui já estavam de pé antes: etapa vencida há mais de
+3 dias é pulada em vez de enviada (sem rajada ao ligar o pagamento) e há teto de
+50 mensagens pagas por dia. Ver as duas seções acima.
 
 **Do Dr. Jesrryel**
 - Revisar o system prompt de `src/assistente.js` — é ele quem aprova o que a
