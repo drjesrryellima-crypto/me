@@ -244,6 +244,40 @@ Se um dia precisar gerar de novo (`business.facebook.com/settings/system-users`)
 
 **Anular tokens**, na mesma tela, invalida na hora — é o que fazer se um vazar.
 
+## A automação do n8n foi desligada (14/10/2026)
+
+Existia um segundo sistema respondendo os pacientes: o workflow **`My workflow
+6`** no n8n, ativo, 307 execuções, **enviando pelo mesmo `phoneNumberId` do
+7075** (`1336481699545220`). Dois sistemas, um número, cada mensagem do
+paciente virando resposta de dois lugares.
+
+Ele foi **desativado, não apagado** — continua lá, parado, junto com os outros
+cinco que já estavam desligados.
+
+**Isto revisa o diagnóstico das 21 mensagens.** Na época a conclusão foi: o
+paciente escreveu em pedaços e o bot respondeu cada pedaço. Isso é parte da
+história, mas a duplicação foi descartada cedo demais — faltou olhar fora do
+repositório. Com dois sistemas no mesmo número, as duas causas se somavam.
+
+O que o workflow mandava, e que contradizia as regras do consultório:
+
+| O que ele fazia | A regra |
+|---|---|
+| Dizia `R$ 350` sem o paciente perguntar | valor só quando perguntam |
+| Explicava os programas junto do preço da consulta | programa nunca ao lado de dinheiro |
+| Mandava o paciente para o celular pessoal (7397) | a resposta sai pelo 7075, botão Responder |
+| Dizia "segunda a sábado, das 8h às 18h" | a agenda real tem intervalo de almoço |
+| Tinha outro texto de crise | o aprovado está em `messages.js` |
+| Não tinha PARAR, freio, nem teto de gastos | todos valem no bot |
+
+**O conteúdo bom dele foi aproveitado** — ver `src/consultorio.js`: a descrição
+detalhada dos programas, o que acontece na consulta, o retorno cobrado à parte
+e a referência do Partage no endereço. As regras não mudaram; o que mudou foi a
+substância do que o bot sabe dizer.
+
+**Antes de procurar bug de duplicação no código, confira se não há outra
+automação no ar.** O repositório não é o sistema inteiro.
+
 ## Onde fica cada coisa
 
 A conta tem 6 projetos na Railway com nome sorteado, 7 contas de WhatsApp com
