@@ -114,6 +114,11 @@
     white-space: nowrap; margin-right: 6px;
   }
   button.atendido[disabled] { opacity: .55; cursor: default; }
+  button.conversa {
+    font-size: 12px; padding: 4px 9px; min-height: 0;
+    white-space: nowrap; margin-right: 6px;
+  }
+  button.conversa[disabled] { opacity: .55; cursor: default; }
   /* Quem está em handoff e ninguém atendeu ainda. Não é decoração: é a linha
      que o médico precisa achar primeiro quando abre o painel. */
   tr.esperando td.principal { box-shadow: inset 3px 0 0 var(--critical); }
@@ -167,6 +172,45 @@
   .composer .contador { color: var(--ink-muted); font-size: 12px; }
   .composer .contador.estourou { color: var(--critical); }
   .composer .erro-envio { color: var(--critical); font-size: 13px; margin: 10px 0 0; }
+
+  /* --- conversa --- */
+  dialog.conversa {
+    border: 1px solid var(--ring); border-radius: 12px;
+    background: var(--surface); color: inherit;
+    padding: 0; width: min(42rem, calc(100vw - 32px));
+  }
+  dialog.conversa::backdrop { background: rgba(0,0,0,.45); }
+  .conversa form { padding: 18px; margin: 0; }
+  .conversa h2 { margin: 0 0 4px; font-size: 16px; }
+  .conversa .quem { color: var(--ink-muted); font-size: 13px; margin: 0 0 12px; }
+  /* Rola só a lista: o título e o botão de fechar ficam sempre visíveis numa
+     conversa longa. */
+  .fita { max-height: min(60vh, 32rem); overflow-y: auto; }
+  .fala {
+    border: 1px solid var(--ring); border-radius: 10px;
+    padding: 8px 11px; margin-bottom: 8px;
+    font-size: 14px; line-height: 1.5;
+    /* A mensagem do paciente chega com as quebras de linha dele. Sem isto,
+       tudo vira um parágrafo só e a leitura muda de sentido. */
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .fala .autor {
+    display: block; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em;
+    color: var(--ink-muted); margin-bottom: 3px;
+    white-space: normal;
+  }
+  /* Quem falou se lê pela borda, não só pelo rótulo: numa conversa de 30
+     falas, achar as do paciente é o que o médico faz primeiro. */
+  .fala.paciente { background: var(--wash); border-left: 3px solid var(--series-1); }
+  .fala.assistente { border-left: 3px solid var(--ring); }
+  .fala.medico { border-left: 3px solid var(--series-2); }
+  .conversa .aviso { color: var(--ink-muted); font-size: 12px; margin: 10px 0 0; }
+  .conversa .erro-envio { color: var(--critical); font-size: 13px; margin: 10px 0 0; }
+  .conversa .rodape-composer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 12px;
+  }
 
   /* --- painéis --- */
   .painel {
@@ -386,6 +430,23 @@
         <button type="button" id="composer-cancelar">Cancelar</button>
         <button type="button" id="composer-enviar">Enviar</button>
       </span>
+    </div>
+  </form>
+</dialog>
+
+<!-- A conversa com o número do consultório. O número é da Cloud API: não tem
+     app de WhatsApp e a Meta não dá caixa de entrada para ele, então este é o
+     único lugar onde essa conversa pode ser lida. -->
+<dialog class="conversa" id="conversa" aria-labelledby="conversa-titulo">
+  <form method="dialog">
+    <h2 id="conversa-titulo">Conversa com o consultório</h2>
+    <p class="quem" id="conversa-quem"></p>
+    <div class="fita" id="conversa-fita"></div>
+    <p class="erro-envio" id="conversa-erro" hidden></p>
+    <p class="aviso" id="conversa-aviso" hidden></p>
+    <div class="rodape-composer">
+      <span></span>
+      <button type="button" id="conversa-fechar">Fechar</button>
     </div>
   </form>
 </dialog>
@@ -778,6 +839,7 @@
         '<td>' + (l.followupsEnviados.length ? esc(l.followupsEnviados.join(', ')) : '—') + '</td>' +
         '<td>' + esc(dataHora(l.updatedAt)) + '</td>' +
         '<td>' +
+          '<button class="conversa" data-phone="' + esc(l.phone) + '">Conversa</button>' +
           (l.janelaAberta
             ? '<button class="responder" data-phone="' + esc(l.phone) + '">Responder</button>'
             : '') +
@@ -896,6 +958,61 @@
         botao.textContent = 'Enviar';
         $('composer-erro').textContent = err.message || 'erro desconhecido';
         $('composer-erro').hidden = false;
+      });
+  }
+
+  // ---------- ler a conversa ----------
+
+  function abrirConversa(phone, botao) {
+    var rotulo = botao.textContent;
+    botao.disabled = true;
+    botao.textContent = 'Abrindo…';
+    $('conversa-quem').textContent = phone;
+    $('conversa-fita').innerHTML = '';
+    $('conversa-erro').hidden = true;
+    $('conversa-aviso').hidden = true;
+    fetch(comToken('/api/leads/' + encodeURIComponent(phone) + '/conversa'),
+      { headers: { 'Accept': 'application/json' } })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (corpo) {
+          if (!r.ok) throw new Error(corpo.erro || 'falha ao ler a conversa');
+          return corpo;
+        });
+      })
+      .then(function (c) {
+        botao.disabled = false;
+        botao.textContent = rotulo;
+        $('conversa-quem').textContent = (c.nome ? c.nome + ' — ' : '') + c.phone;
+        if (!c.turnos.length) {
+          $('conversa-fita').innerHTML =
+            '<p class="aviso">Nada registrado nesta conversa ainda. ' +
+            'Falas anteriores à versão que passou a guardar o histórico não aparecem aqui.</p>';
+        } else {
+          $('conversa-fita').innerHTML = c.turnos.map(function (t) {
+            // A hora só aparece se foi realmente registrada. Turno antigo não
+            // tem 'em', e escrever a hora de agora ali seria inventar quando a
+            // pessoa falou — numa conversa clínica isso não é detalhe.
+            var quando = t.em ? ' · ' + dataHora(t.em) : '';
+            return '<div class="fala ' + esc(t.quem) + '">' +
+              '<span class="autor">' + esc(t.rotulo) + quando + '</span>' +
+              esc(t.texto) +
+            '</div>';
+          }).join('');
+        }
+        if (c.truncada) {
+          $('conversa-aviso').textContent =
+            'Mostrando as últimas 40 falas — o começo da conversa não é guardado.';
+          $('conversa-aviso').hidden = false;
+        }
+        $('conversa').showModal();
+        // Conversa abre no fim, onde está a fala que acabou de chegar.
+        $('conversa-fita').scrollTop = $('conversa-fita').scrollHeight;
+        $('conversa-fechar').focus();
+      })
+      .catch(function (err) {
+        botao.disabled = false;
+        botao.textContent = rotulo;
+        alert('Não deu pra abrir a conversa: ' + (err.message || 'erro desconhecido'));
       });
   }
 
@@ -1088,12 +1205,18 @@
   $('composer-texto').addEventListener('input', atualizarContador);
   $('composer-cancelar').addEventListener('click', function () { $('composer').close(); });
   $('composer-enviar').addEventListener('click', enviarResposta);
+  $('conversa-fechar').addEventListener('click', function () { $('conversa').close(); });
 
   $('corpo-tabela').addEventListener('click', function (e) {
     if (!e.target.closest) return;
     var responder = e.target.closest('button.responder');
     if (responder) {
       abrirComposer(responder.getAttribute('data-phone'));
+      return;
+    }
+    var conversa = e.target.closest('button.conversa');
+    if (conversa) {
+      abrirConversa(conversa.getAttribute('data-phone'), conversa);
       return;
     }
     var atendido = e.target.closest('button.atendido');

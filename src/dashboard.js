@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const express = require('express');
 const { readAll, getLead, saveLead } = require('./state');
 const { planejarReativacao } = require('./reativar');
+const { montarConversa } = require('./conversa');
 const { planejarResposta, janela } = require('./responder');
 const { webhookProtegido } = require('./assinatura');
 const { lerAgenda, salvarAgenda, validarAgenda, descreverAgenda, DIAS } = require('./agenda');
@@ -262,7 +263,7 @@ function criarRouter() {
     const lead = getLead(phone) || {};
     const historicoConversa = [
       ...(lead.historicoConversa || []),
-      { role: 'assistant', content: plano.texto, autor: 'medico' },
+      { role: 'assistant', content: plano.texto, autor: 'medico', em: new Date().toISOString() },
     ];
     const salvo = saveLead(phone, {
       historicoConversa: historicoConversa.slice(-40),
@@ -271,6 +272,28 @@ function criarRouter() {
     });
     console.log(`[dashboard] resposta do médico enviada para ${phone} (${plano.texto.length} caracteres)`);
     return res.json({ ok: true, lead: montarLinhas([salvo])[0] });
+  });
+
+  // A conversa inteira que o paciente teve com o número do consultório.
+  //
+  // É o único lugar onde ela pode ser lida: o número é da Cloud API (sem app de
+  // WhatsApp, e a Meta não dá caixa de entrada para ele) e o log da Railway só
+  // guarda o tamanho das mensagens, nunca o texto.
+  router.get('/api/leads/:phone/conversa', exigirToken, (req, res) => {
+    try {
+      const phone = String(req.params.phone || '');
+      const conversa = montarConversa(getLead(phone));
+      if (!conversa) {
+        return res.status(404).json({ erro: 'lead não encontrado' });
+      }
+      // Abrir conversa de paciente é acesso a dado de saúde: a linha registra
+      // QUE houve acesso, e de propósito não registra o que foi lido.
+      console.log(`[dashboard] conversa de ${phone} aberta (${conversa.turnos.length} turnos)`);
+      return res.json(conversa);
+    } catch (err) {
+      console.error('[dashboard] erro ao montar conversa:', err.message);
+      return res.status(500).json({ erro: 'falha ao ler a conversa' });
+    }
   });
 
   // As faixas de atendimento que a assistente informa ao paciente.

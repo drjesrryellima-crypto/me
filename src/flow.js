@@ -54,7 +54,11 @@ async function enviar(to, texto) {
 // recebe na próxima mensagem. Cortado nos últimos turnos pelo assistente.js.
 function registrarTurno(phone, role, content) {
   const lead = getLead(phone) || {};
-  const historicoConversa = [...(lead.historicoConversa || []), { role, content }];
+  // 'em' é só para o painel ler depois: a IA recebe apenas role e content
+  // (ver montarMensagens no assistente.js), então o campo extra não entra no
+  // prompt nem gasta token.
+  const em = new Date().toISOString();
+  const historicoConversa = [...(lead.historicoConversa || []), { role, content, em }];
   const campos = { historicoConversa: historicoConversa.slice(-40) };
   // Marca quando o PACIENTE falou pela última vez. É o relógio da janela de
   // 24h da Meta, e updatedAt não serve: ele também mexe quando quem escreve
