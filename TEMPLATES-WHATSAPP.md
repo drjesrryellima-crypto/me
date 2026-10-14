@@ -107,6 +107,67 @@ Oi! Que tal marcarmos uma conversa de 15 minutos, com calma, pra tirar suas dúv
 
 ---
 
+## Os leads do Meta Ads são outra conversa
+
+Os quatro `followup_*` acima são do **funil**: gente que clicou no Instagram,
+escreveu para o 7075 e conversou com a assistente. "Passando pra saber se ficou
+alguma dúvida" faz sentido para elas.
+
+Os leads do **Meta Ads** são outra origem: preencheram um formulário de anúncio
+e **nunca escreveram** para o número. Quem recebe "ficou alguma dúvida?" sem
+nunca ter conversado pensa "dúvida sobre o quê? quem é você?" — e confusão é o
+que faz bloquear. Bloqueio e denúncia é o que derruba a nota do número; o envio
+em si, não.
+
+Por isso eles têm template próprio, e a diferença está na primeira linha: **diz
+de onde veio o contato.** A pessoa lembra na hora. Quem não tem mais interesse
+ignora ou responde PARAR, em vez de denunciar.
+
+Quem dispara para essa lista é o serviço `whatsapp-leads-disparo` (ver
+ESTADO-DO-PROJETO.md), não o follow-up daqui.
+
+### 5. Primeiro contato do Meta Ads
+
+| | |
+|---|---|
+| **Nome** | `lead_ads_primeiro_contato` |
+| **Categoria** | Utilidade |
+| **Idioma** | Português (BR) |
+
+**Corpo:**
+
+```
+Oi! Aqui é o time do Dr. Jesrryel Lima, em Mossoró. Você deixou seu contato pedindo informações sobre acompanhamento em saúde mental. Posso te explicar por aqui como funciona o atendimento e responder o que você quiser saber — é só responder esta mensagem. Se preferir não receber mais, responda PARAR.
+```
+
+> Utilidade porque responde a um pedido que a própria pessoa fez no formulário.
+> Se a Meta reclassificar para Marketing, continua valendo — só muda o preço.
+
+### 6. Segundo toque do Meta Ads
+
+| | |
+|---|---|
+| **Nome** | `lead_ads_segundo_toque` |
+| **Categoria** | Marketing |
+| **Idioma** | Português (BR) |
+
+**Corpo:**
+
+```
+Oi! Faz um tempo que você deixou seu contato pedindo informações sobre acompanhamento em saúde mental com o Dr. Jesrryel Lima, em Mossoró. Se ainda fizer sentido pra você, me responde que eu te explico como funciona — presencial ou online. Se não fizer mais, responda PARAR que eu não te procuro de novo.
+```
+
+### O PARAR precisa valer nos dois lados
+
+Os dois textos prometem PARAR. O bot deste repositório entende e para
+(`src/descadastro.js`), mas **quem dispara para essa lista é outro programa,
+com a lista dele**. Confirmado em 14/10/2026 que ele consulta quem pediu para
+sair.
+
+Isso não é detalhe: prometer PARAR e continuar mandando é pior que não
+prometer — vira denúncia na certa, e é LGPD (art. 18). Se algum dia o disparo
+mudar de dono ou de código, **esta é a primeira coisa a reconferir.**
+
 ## Depois que a Meta aprovar
 
 Cada template aprovado vira uma variável na Railway:
