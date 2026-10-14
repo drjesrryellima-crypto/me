@@ -47,6 +47,8 @@ Quando tiver as três, apresente os dois programas e pergunte qual faz mais sent
 Isto é tudo que você pode afirmar. O que não está aqui, você não sabe — e diz que vai confirmar com a equipe.
 
 **Consulta avulsa:** {{VALOR}}, duração de {{DURACAO}}.
+**O que acontece na consulta:** {{CONSULTA}}
+**Retorno:** {{RETORNO}}
 **Pagamento:** {{PAGAMENTO}}.
 **Horários de atendimento:** {{AGENDA}}.
 **Presencial:** {{PRESENCIAL}}
@@ -111,6 +113,8 @@ function montarSystemPrompt(agenda) {
     const valores = {
       VALOR: CONSULTA_AVULSA.valorEscrito,
       DURACAO: CONSULTA_AVULSA.duracaoEscrita,
+      CONSULTA: CONSULTA_AVULSA.oQueAcontece,
+      RETORNO: CONSULTA_AVULSA.retornoEscrito,
       PAGAMENTO: PAGAMENTO.escrito,
       AGENDA: descreverAgenda(agenda),
       PRESENCIAL: PRESENCIAL.escrito,

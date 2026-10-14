@@ -13,6 +13,21 @@ const CONSULTA_AVULSA = {
   valorEscrito: 'R$ 350',
   duracaoMinutos: 60,
   duracaoEscrita: '1 hora',
+  // O que acontece na hora. Sem isso, "1 hora, R$ 350" é preço sem nada do
+  // outro lado da balança — e quem está decidindo buscar ajuda precisa saber o
+  // que vai receber, não quanto vai pagar.
+  //
+  // Evita de propósito a palavra "plano" (como em "plano terapêutico"): ela é
+  // bloqueada pelo compliance, porque colide com "plano de saúde" e com
+  // "plano de acompanhamento". Aqui é "proposta de tratamento".
+  oQueAcontece:
+    'O Dr. Jesrryel conhece com calma os vários aspectos da sua vida, avalia sua ' +
+    'condição física, levanta hipóteses diagnósticas e monta uma proposta de ' +
+    'tratamento junto com você.',
+  // Dito antes, não descoberto depois. Quem marca achando que o retorno vem
+  // junto descobre na pior hora, e a conta vira ressentimento.
+  retornoIncluso: false,
+  retornoEscrito: 'O retorno é cobrado à parte, não está incluído na consulta.',
 };
 
 const PAGAMENTO = {
@@ -28,9 +43,12 @@ const PRESENCIAL = {
   endereco: 'Avenida João da Escóssia, 3715 — Nova Betânia, Mossoró/RN',
   cep: '59607-330',
   sala: '1º andar, sala 67',
+  // A referência do Partage vale mais que o CEP para quem é de Mossoró: ninguém
+  // acha um prédio por CEP, acha por "é perto do quê".
+  referencia: 'vizinho ao Partage Shopping',
   escrito:
-    'No West Home and Business (WHB) — Avenida João da Escóssia, 3715, Nova Betânia, ' +
-    'Mossoró/RN, CEP 59607-330. 1º andar, sala 67.',
+    'No West Home and Business (WHB), vizinho ao Partage Shopping — Avenida João da ' +
+    'Escóssia, 3715, Nova Betânia, Mossoró/RN, CEP 59607-330. 1º andar, sala 67.',
 };
 
 const ONLINE = {
@@ -54,18 +72,27 @@ const LEMBRETE = {
 // Os programas são o serviço principal do consultório, e o bot deve sempre
 // apresentá-los — mas NUNCA com preço. O valor do acompanhamento é conversa
 // do médico: é nela que ele é justificado, e é nela que a pessoa decide.
+//
+// A descrição detalhada (duração, número de encontros, o que está incluído)
+// veio da automação antiga do n8n, desligada em 14/10/2026. Lá ela convivia
+// com o preço na mesma mensagem; aqui não — a regra de nunca falar o valor
+// dos programas continua valendo inteira. O que o texto ganhou foi substância:
+// "cuidado mais próximo" não diz nada; "6 encontros médicos em 90 dias" diz.
 const PROGRAMAS = {
   falaPreco: false,
   recomeco:
-    'Recomeço — para quem está começando agora e precisa de um cuidado mais próximo ' +
-    'logo de cara, com psiquiatria e psicologia caminhando juntas até a pessoa se ' +
-    'sentir mais estável.',
+    'Recomeço — 90 dias de acompanhamento próximo, para quem está começando ou ' +
+    'retomando o cuidado agora. São 6 encontros com o médico, 8 com psicólogo, ' +
+    '2 com nutricionista e 2 com educador físico, mais um canal de mensagens com a ' +
+    'equipe e um resumo escrito depois de cada encontro.',
   constancia:
     'Constância — para quem já encontrou seu equilíbrio e quer manter esse cuidado ' +
-    'vivo, com uma frequência mais espaçada, sem perder o acompanhamento.',
+    'vivo: encontros médicos mensais com a mesma equipe ao lado, em ciclos de 3 meses. ' +
+    'Começa a partir de uma avaliação inicial com o Dr. Jesrryel.',
   equipe:
-    'Os dois contam com equipe para olhar a pessoa por inteiro — psiquiatria, ' +
-    'psicologia, nutrição e educação física, quando fizer sentido — presencial ou online.',
+    'Nos dois, a pessoa é cuidada por inteiro — saúde mental, sono, rotina, ' +
+    'alimentação e movimento — com os profissionais conversando entre si, ' +
+    'presencial ou online.',
 };
 
 module.exports = { CONSULTA_AVULSA, PAGAMENTO, PRESENCIAL, ONLINE, LEMBRETE, PROGRAMAS };

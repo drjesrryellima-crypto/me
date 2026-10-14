@@ -38,6 +38,8 @@ test('todo fato do consultório chega ao prompt da assistente', () => {
     PRESENCIAL.escrito,
     ONLINE.escrito,
     LEMBRETE.escrito,
+    CONSULTA_AVULSA.oQueAcontece,
+    CONSULTA_AVULSA.retornoEscrito,
   ]) {
     assert.ok(prompt.includes(trecho), `o prompt não carrega: "${trecho}"`);
   }
@@ -45,4 +47,48 @@ test('todo fato do consultório chega ao prompt da assistente', () => {
 
 test('o prompt manda apresentar os programas mesmo a quem perguntou da avulsa', () => {
   assert.match(systemPrompt(), /mesmo para quem só perguntou da consulta avulsa/i);
+});
+
+// Os fatos que vieram da automação antiga do n8n (desligada em 14/10/2026).
+// Lá eles conviviam com o preço na mesma mensagem; aqui as regras continuam
+// valendo inteiras, então cada um precisa PASSAR pelo compliance.
+const { violaCompliance } = require('../src/assistente');
+
+test('a descrição dos programas tem substância, não adjetivo', () => {
+  // "cuidado mais próximo" não diz nada a quem está decidindo. Número de
+  // encontros diz. Se alguém encurtar isso de volta, o teste reclama.
+  assert.match(PROGRAMAS.recomeco, /90 dias/);
+  assert.match(PROGRAMAS.recomeco, /6 encontros/);
+  assert.match(PROGRAMAS.constancia, /ciclos de 3 meses/);
+});
+
+test('descrever os programas inteiros não trava no compliance', () => {
+  for (const texto of [PROGRAMAS.recomeco, PROGRAMAS.constancia, PROGRAMAS.equipe]) {
+    assert.equal(
+      violaCompliance(texto, { perguntaDoLead: 'como funciona o acompanhamento?' }),
+      false,
+      `o compliance bloqueou a própria descrição do programa: ${texto.slice(0, 50)}…`
+    );
+  }
+});
+
+// A palavra "plano" é bloqueada (colide com "plano de saúde" e com o nome
+// errado dos programas). O texto da consulta dizia "plano terapêutico" na
+// automação antiga — aqui não pode voltar, ou a resposta certa morre na trava.
+test('o texto da consulta não usa a palavra proibida "plano"', () => {
+  assert.doesNotMatch(CONSULTA_AVULSA.oQueAcontece, /\bplanos?\b/i);
+  assert.equal(
+    violaCompliance(CONSULTA_AVULSA.oQueAcontece, { perguntaDoLead: 'como é a consulta?' }),
+    false
+  );
+});
+
+test('o retorno é dito, não descoberto depois', () => {
+  assert.equal(CONSULTA_AVULSA.retornoIncluso, false);
+  assert.match(CONSULTA_AVULSA.retornoEscrito, /retorno/i);
+});
+
+// Ninguém acha um prédio por CEP em Mossoró; acha por referência.
+test('o endereço carrega a referência do Partage', () => {
+  assert.match(PRESENCIAL.escrito, /Partage/);
 });

@@ -244,6 +244,64 @@ Se um dia precisar gerar de novo (`business.facebook.com/settings/system-users`)
 
 **Anular tokens**, na mesma tela, invalida na hora — é o que fazer se um vazar.
 
+## A automação do n8n foi desligada (14/10/2026)
+
+Existia um segundo sistema respondendo os pacientes: o workflow **`My workflow
+6`** no n8n, ativo, 307 execuções, **enviando pelo mesmo `phoneNumberId` do
+7075** (`1336481699545220`). Dois sistemas, um número, cada mensagem do
+paciente virando resposta de dois lugares.
+
+Ele foi **desativado, não apagado** — continua lá, parado, junto com os outros
+cinco que já estavam desligados.
+
+**Isto revisa o diagnóstico das 21 mensagens.** Na época a conclusão foi: o
+paciente escreveu em pedaços e o bot respondeu cada pedaço. Isso é parte da
+história, mas a duplicação foi descartada cedo demais — faltou olhar fora do
+repositório. Com dois sistemas no mesmo número, as duas causas se somavam.
+
+O que o workflow mandava, e que contradizia as regras do consultório:
+
+| O que ele fazia | A regra |
+|---|---|
+| Dizia `R$ 350` sem o paciente perguntar | valor só quando perguntam |
+| Explicava os programas junto do preço da consulta | programa nunca ao lado de dinheiro |
+| Mandava o paciente para o celular pessoal (7397) | a resposta sai pelo 7075, botão Responder |
+| Dizia "segunda a sábado, das 8h às 18h" | a agenda real tem intervalo de almoço |
+| Tinha outro texto de crise | o aprovado está em `messages.js` |
+| Não tinha PARAR, freio, nem teto de gastos | todos valem no bot |
+
+**O conteúdo bom dele foi aproveitado** — ver `src/consultorio.js`: a descrição
+detalhada dos programas, o que acontece na consulta, o retorno cobrado à parte
+e a referência do Partage no endereço. As regras não mudaram; o que mudou foi a
+substância do que o bot sabe dizer.
+
+**Antes de procurar bug de duplicação no código, confira se não há outra
+automação no ar.** O repositório não é o sistema inteiro.
+
+## O projeto `bot-whatsapp` tem DOIS serviços
+
+| Serviço | O que é |
+|---|---|
+| `me` | o bot deste repositório — webhook, assistente, painel, follow-up do funil |
+| `whatsapp-leads-disparo` | **outro programa, em Python, que não está neste repositório** |
+
+O `whatsapp-leads-disparo` dispara templates pagos para uma lista própria, todo
+dia às 9h de Mossoró, com teto próprio de 50 por dia. Em 14/10/2026 ele saiu do
+modo SIMULAÇÃO para o modo REAL e enviou 50 mensagens na primeira manhã,
+usando os mesmos templates `followup_*` do funil.
+
+**É intencional** — confirmado pelo Dr. Jesrryel em 14/10/2026. Não é bug, não
+é duplicação do `me`, e não deve ser "consertado" por quem encontrar as linhas
+`[disparo]` no log.
+
+Duas consequências de ter dois remetentes no mesmo número:
+
+- **o teto real do dia é a soma dos dois.** O `TETO_TEMPLATES_DIA` daqui (50)
+  não enxerga o que o outro serviço mandou — são contagens separadas.
+- **a nota de qualidade do 7075 é compartilhada.** Disparo para quem não pediu
+  derruba a nota do número que o funil também usa. Acompanhar em WhatsApp
+  Manager → Números de telefone; se cair para Média, é sinal para agir.
+
 ## Onde fica cada coisa
 
 A conta tem 6 projetos na Railway com nome sorteado, 7 contas de WhatsApp com
