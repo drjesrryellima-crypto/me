@@ -248,6 +248,32 @@ para nada — nada está aguardando.
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
+## O teto de gastos é nosso, não da Meta
+
+**A Meta não oferece teto de gastos para mensagem de WhatsApp.** O "limite de
+gastos" do painel dela é de conta de **anúncios**. Para mensagem a cobrança é
+por **limiar de faturamento**: ela avisa e cobra, não corta. Do lado dela não há
+freio.
+
+Do lado de cá há, desde 14/10/2026 (`src/orcamento.js`): **teto de 50 mensagens
+pagas por dia**, ajustável por `TETO_TEMPLATES_DIA`.
+
+Por que um teto global, se já existe o freio: o `src/freio.js` é **por pessoa**
+(3 por minuto). Um laço disparando template para centenas de leads diferentes
+passa por ele inteiro — cada um dentro do seu limite individual. É exatamente
+esse o caso que vira conta surpresa, e é o que este teto pega.
+
+O dia vira à **meia-noite local** (Mossoró), não à de UTC: a meia-noite de UTC
+é 21h aqui, e o teto zerar ali daria orçamento novo de graça no meio da noite.
+
+**Um `[orcamento] 🚨 TETO DIÁRIO ATINGIDO` é quase sempre bug.** O consultório
+manda no máximo 4 follow-ups por lead, uma etapa por dia — 50 cobre volume
+muito acima do real. Antes de aumentar o número, descubra por que ele foi
+atingido.
+
+Lead barrado pelo teto **não** é marcado como enviado: ele recebe o follow-up
+amanhã, quando houver orçamento.
+
 ## O follow-up não dispara rajada ao ligar o pagamento
 
 Enquanto os templates não estão configurados, cada etapa vencida era pulada
