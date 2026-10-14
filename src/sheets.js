@@ -1,5 +1,5 @@
 const { google } = require('googleapis');
-const { opcoesDeAuth } = require('./google-credenciais');
+const { opcoesDeAuth, contaEmUso } = require('./google-credenciais');
 const { estagioCrm, ehRisco } = require('./estados');
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -92,6 +92,34 @@ function encontrarLinha(colunaA, phone) {
 // disso, procura o telefone na coluna A: se já existe uma linha pra esse
 // lead, atualiza ela; senão, adiciona uma linha nova. Resultado: 1 linha
 // por lead, sempre com os dados mais recentes.
+// Diz QUEM tentou escrever em QUE planilha, e devolve a dica certa para cada
+// causa. "The caller does not have permission" sozinho não diz nada: a conta
+// pode estar sem acesso, a planilha pode ser outra, ou a API pode estar
+// desligada no projeto do Google — e as três têm conserto diferente.
+//
+// Nada aqui é segredo: e-mail de conta de serviço e id de planilha são
+// identificadores, não credencial. A chave privada não aparece.
+function explicarErroDoSheets(err) {
+  const motivo = (err && err.message) || String(err);
+  const quem = contaEmUso() || '(credencial não identificada)';
+  const onde = SHEET_ID || '(GOOGLE_SHEET_ID vazio)';
+  const base = `[sheets] falha ao gravar — conta ${quem}, planilha ${onde}, aba "${TAB}": ${motivo}`;
+
+  if (/permission/i.test(motivo)) {
+    return `${base}
+  Três causas possíveis, nesta ordem:
+  1. a conta acima não está como Editor NESSA planilha (compartilhe com ela);
+  2. GOOGLE_SHEET_ID aponta para outra planilha — confira o id acima;
+  3. a API do Google Sheets está desligada no projeto dono dessa conta.`;
+  }
+  if (/Unable to parse range|not found/i.test(motivo)) {
+    return `${base}
+  A aba "${TAB}" provavelmente não existe com esse nome exato (maiúsculas e
+  acentos contam). Ajuste GOOGLE_SHEET_TAB ou renomeie a aba.`;
+  }
+  return base;
+}
+
 async function appendLeadRow(lead) {
   const client = await getClient();
   if (!client || !SHEET_ID) return;
@@ -124,4 +152,28 @@ async function appendLeadRow(lead) {
   }
 }
 
-module.exports = { appendLeadRow, soDigitos, encontrarLinha, montarLinha, COLUNAS, ULTIMA_COLUNA };
+// A planilha é um espelho do estado, não o estado: quem manda é o disco
+// (src/state.js), e a resposta ao paciente já saiu antes desta chamada.
+//
+// Antes, um erro aqui subia até o agrupador e aparecia como
+// "[agrupador] falha ao processar <telefone>" — como se a MENSAGEM tivesse
+// falhado. Ela não falhou: o paciente foi respondido. Só o espelho ficou
+// desatualizado, e o log fazia parecer coisa muito pior do que é.
+async function gravarLeadNaPlanilha(lead) {
+  try {
+    await appendLeadRow(lead);
+  } catch (err) {
+    console.error(explicarErroDoSheets(err));
+  }
+}
+
+module.exports = {
+  appendLeadRow,
+  gravarLeadNaPlanilha,
+  explicarErroDoSheets,
+  soDigitos,
+  encontrarLinha,
+  montarLinha,
+  COLUNAS,
+  ULTIMA_COLUNA,
+};
