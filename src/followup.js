@@ -4,6 +4,7 @@ const { sendTemplate } = require('./whatsapp');
 const { explicarErroMeta } = require('./erros-meta');
 const { planejarFollowup } = require('./followup-plano');
 const { registrarEnvio } = require('./freio');
+const { registrarTemplate } = require('./orcamento');
 
 // MVP simples: roda uma vez por dia (09:00) e verifica, para cada lead com
 // followupsAgendados = true, quantos dias se passaram desde que o catálogo
@@ -67,6 +68,21 @@ async function checarFollowups(agora = new Date()) {
         `[freio] 🚨 FOLLOW-UP BLOQUEADO para ${phone}: ${enviadas} mensagens no último minuto.`
       );
       continue;
+    }
+
+    // O freio é por pessoa; este é global. Um laço disparando para centenas de
+    // leads diferentes passa por aquele e é barrado por este — e é esse o caso
+    // que vira conta surpresa.
+    const orcamento = registrarTemplate(agora);
+    if (!orcamento.liberado) {
+      console.error(
+        `[orcamento] 🚨 TETO DIÁRIO ATINGIDO: ${orcamento.enviadosHoje}/${orcamento.teto} ` +
+          'mensagens pagas hoje. O resto da fila fica para amanhã. Se isto não era esperado, ' +
+          'é bug — investigue antes de aumentar TETO_TEMPLATES_DIA.'
+      );
+      // break, não continue: o teto é global, então não adianta tentar o
+      // próximo lead.
+      break;
     }
 
     // O try é por lead, não pelo lote. Sem ele, um único número que a Meta
