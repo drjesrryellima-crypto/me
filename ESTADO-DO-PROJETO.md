@@ -252,7 +252,7 @@ coisa errada.
 
 | O quê | Onde |
 |---|---|
-| Serviço na Railway | projeto renomeado para `bot-whatsapp`, serviço `me`, endereço `me-production-a9ec.up.railway.app` |
+| Serviço na Railway | projeto **`hearty-success`**, serviço `me`, endereço `me-production-a9ec.up.railway.app` |
 | Conta de WhatsApp em uso | `Test WhatsApp Business Account` |
 | Usuário do sistema | `AutomaçãoTriagem` |
 
@@ -265,6 +265,19 @@ significa refazer a aprovação.
 Renomear com prefixo (`[EM USO]`, `[NAO USAR]`) resolve a confusão sem risco
 nenhum, e é o que vale fazer. O prefixo `[AGUARDANDO META]` não serve mais
 para nada — nada está aguardando.
+
+**Os projetos da Railway ainda têm os nomes sorteados.** Esta tabela já dizia
+`bot-whatsapp` como se o projeto tivesse sido renomeado, e ele não foi — a
+anotação era do plano, não do feito. Custou uma caçada por um projeto que não
+existia com aquele nome.
+
+### Como achar o projeto certo na Railway
+
+Os nomes sorteados (`hearty-success`, `impartial-vibrancy`, …) não dizem nada,
+e um deles tem quatro serviços de banco e não é nenhum destes. O que decide é o
+**endereço público do serviço**: abre o projeto, clica no serviço e confere se
+é `me-production-a9ec.up.railway.app`. Data do último deploy ajuda a chutar a
+ordem, mas não serve de prova — dois projetos podem ter subido no mesmo dia.
 
 ## Identificadores
 
