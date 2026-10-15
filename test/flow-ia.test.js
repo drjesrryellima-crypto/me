@@ -117,7 +117,12 @@ test('a conversa fica registrada no histórico pra virar contexto da próxima me
   const historico = getLead(phone).historicoConversa || [];
   const ultimo = historico[historico.length - 1];
   assert.equal(ultimo.role, 'assistant');
-  assert.equal(ultimo.content, 'Oi! Como posso ajudar?');
+  // A apresentação é colada pelo responderLead() na primeira fala do bot, e o
+  // histórico guarda o que de fato SAIU — senão o painel mostraria a conversa
+  // sem ela e o médico não teria como saber se o bot se apresentou.
+  assert.ok(ultimo.content.startsWith('Boa '), ultimo.content);
+  assert.ok(ultimo.content.includes('consultório do Dr. Jesrryel Lima'), ultimo.content);
+  assert.ok(ultimo.content.endsWith('Oi! Como posso ajudar?'), ultimo.content);
   // 'em' é o que permite o painel mostrar QUANDO cada fala aconteceu. Não vai
   // para a API (ver montarMensagens no assistente.js), só para a tela.
   assert.match(ultimo.em, /^\d{4}-\d{2}-\d{2}T/);

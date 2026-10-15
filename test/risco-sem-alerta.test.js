@@ -74,6 +74,23 @@ test('fica registrado no lead, para o painel ver depois', async () => {
 test('a mensagem não promete que o médico vai procurar', async () => {
   const { flow, enviados } = montar();
   await flow.handleIncomingMessage({ from: '558499687397', text: 'quero me matar' });
-  assert.doesNotMatch(enviados[0], /Jesrryel/);
-  assert.doesNotMatch(enviados[0], /avisado|vai te procurar/i);
+  assert.doesNotMatch(enviados[0], /avisado|vai te procurar|j[áa] foi acionado/i);
+  // Antes esta linha era doesNotMatch(/Jesrryel/), usando o nome como atalho
+  // para "não promete o médico". O atalho deixou de servir quando a abertura
+  // passou a dizer de quem é o consultório — e um atalho que começa a falhar
+  // por outro motivo esconde a regra que ele devia proteger. Agora mira na
+  // promessa, que é o que nunca pode voltar.
+  assert.doesNotMatch(enviados[0], /Dr\. Jesrryel (j[áa]|vai|est[áa])/i);
+});
+
+// Abertura animada com coração na frente de uma resposta a risco de vida
+// empurra o 188 para baixo e muda o tom de tudo. A identificação que importa
+// aqui o próprio texto já dá: "este canal é do consultório".
+test('a resposta de risco não vem com o cumprimento e a apresentação na frente', async () => {
+  const { flow, enviados } = montar();
+  await flow.handleIncomingMessage({ from: '558499687397', text: 'quero me matar' });
+  assert.ok(enviados[0].startsWith('Obrigado por me dizer isso'), enviados[0]);
+  assert.doesNotMatch(enviados[0], /^(bom dia|boa tarde|boa noite)/i);
+  assert.ok(enviados[0].includes('este canal é do consultório'), enviados[0]);
+  assert.ok(enviados[0].includes('188'), enviados[0]);
 });
