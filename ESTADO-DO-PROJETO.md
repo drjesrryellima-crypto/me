@@ -399,6 +399,36 @@ dia.
 | Planilha CRM | `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg` |
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 
+### Como o bot abre uma conversa
+
+Desde 15/10/2026, a primeira fala do bot em qualquer conversa é:
+
+> **Boa noite! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente dele** 💙
+
+O cumprimento muda com a hora **de Mossoró** (UTC-3, sem horário de verão):
+bom dia das 5h às 11h59, boa tarde das 12h às 17h59, boa noite das 18h às 4h59.
+O servidor roda em UTC, então sem essa conta um "boa noite" de 21h sairia como
+"bom dia" — justamente no horário em que mais paciente escreve.
+
+Isso não é cortesia, é honestidade: a pessoa está contando coisa íntima no
+WhatsApp de um consultório e precisa saber que do outro lado está uma
+assistente automática, não o médico. Quem acha que fala com o médico escreve
+coisas diferentes, e espera respostas que este canal não dá.
+
+**Mora em um lugar só** (`src/abertura.js`, colado pelo `responderLead()` do
+`flow.js`) porque toda fala do bot sai por ali: a IA, o roteiro fixo e os
+handoffs. Eram onze pontas; em uma delas era questão de tempo até alguém
+esquecer, e o pedido era "sempre". O texto enviado e o texto guardado no
+histórico são o mesmo — senão o painel mostraria a conversa sem a apresentação
+e não daria para saber se o bot se apresentou.
+
+**Duas exceções, de propósito:**
+
+| Caminho | Por quê |
+|---|---|
+| Resposta a risco | "Boa noite! ... 💙" na frente de "você não precisa atravessar isso sozinho(a)" muda o tom de tudo e empurra o 188 uma linha para baixo. O texto já diz "este canal é do consultório", que é a identificação que importa ali |
+| Templates (follow-up D+2/D+3/D+5/D+7 e primeiro contato do disparo) | O texto está **registrado na Meta**, não no código. Mudar a abertura deles é editar o template no Meta Business Manager e esperar aprovação |
+
 ### Por que os seus números aparecem no painel
 
 Tudo que está no painel entrou pelo 7075 — não existe outro caminho de entrada.

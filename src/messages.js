@@ -4,10 +4,13 @@
 // - nunca usar "consulta psiquiátrica" (sempre "saúde mental")
 
 module.exports = {
+  // Sem cumprimento e sem apresentação de propósito: quem faz isso é o
+  // abertura.js, colado pelo responderLead() do flow.js na primeira fala da
+  // conversa. Se este texto também cumprimentasse, o paciente receberia
+  // "Boa noite! Aqui é do consultório..." seguido de "Oi! Que bom te receber".
   boasVindas: () =>
-    `Oi! Que bom te receber por aqui 💙\n` +
-    `Eu sou do time do Dr. Jesrryel, e vou te ajudar a entender qual caminho faz mais sentido pra você.\n\n` +
-    `Antes de mais nada: me conta com suas palavras — o que te trouxe até aqui hoje?`,
+    `Vou te ajudar a entender qual caminho faz mais sentido pra você.\n\n` +
+    `Me conta com suas palavras: o que te trouxe até aqui hoje?`,
 
   perguntaHistorico: () =>
     `Entendi. E me diz uma coisa: você já buscou algum tipo de acompanhamento em saúde mental antes, ou seria a primeira vez dando esse passo?`,

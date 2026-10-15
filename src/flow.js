@@ -15,6 +15,7 @@ const { registrarEnvio } = require('./freio');
 const { agrupar, esvaziar } = require('./agrupador');
 const { MARCA_RISCO } = require('./estados');
 const agendamento = require('./agendamento');
+const { comAbertura } = require('./abertura');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
@@ -69,6 +70,24 @@ function registrarTurno(phone, role, content) {
   return saveLead(phone, campos);
 }
 
+// Toda fala do bot sai por aqui: a IA, o roteiro fixo, o acolhimento de risco
+// e os handoffs. Era um par repetido em onze lugares (enviar + registrarTurno),
+// e é por isso que a apresentação mora aqui e não em cada texto.
+//
+// Pedido do Dr. Jesrryel em 15/10/2026: cumprimentar e dizer quem está falando
+// antes de qualquer outra coisa. Em uma das onze pontas era questão de tempo
+// até alguém esquecer — e o pedido era "sempre".
+//
+// Envia e registra o MESMO texto de propósito: se a apresentação entrasse só
+// no envio, o painel mostraria a conversa sem ela e o médico não teria como
+// saber se o bot se apresentou.
+async function responderLead(to, texto) {
+  const final = comAbertura(texto, getLead(to));
+  await enviar(to, final);
+  registrarTurno(to, 'assistant', final);
+  return final;
+}
+
 // Risco NÃO chama o médico. Decisão dele, em 15/10/2026, e clinicamente a
 // certa: quem está em risco iminente precisa de serviço de urgência 24h, não
 // de um WhatsApp de consultório. O alerta criava a expectativa errada dos dois
@@ -86,6 +105,15 @@ function registrarTurno(phone, role, content) {
 // A marca de risco continua indo para as notas: o painel precisa mostrar quem
 // passou por isso. Não avisar não é o mesmo que não registrar.
 async function responderRisco(from, textoOriginal) {
+  // O único caminho que NÃO passa por responderLead(), e de propósito: aqui a
+  // abertura seria "Boa noite! Aqui é do consultório do Dr. Jesrryel Lima — eu
+  // sou a assistente dele 💙" na frente de "você não precisa atravessar isso
+  // sozinho(a)". Cumprimento animado e coração antes de uma resposta a risco de
+  // vida, e o 188 empurrado uma linha para baixo.
+  //
+  // A pessoa continua sabendo com quem fala: o próprio texto diz "este canal é
+  // do consultório e não consegue te acompanhar neste momento" — que é a
+  // identificação que importa neste momento, e a que mais importa dizer.
   await enviar(from, messages.acolhimentoRisco());
   registrarTurno(from, 'assistant', messages.acolhimentoRisco());
   saveLead(from, { notas: `${MARCA_RISCO} — orientado a 188/192, médico não acionado` });
@@ -98,8 +126,7 @@ async function encaminharParaHumano(from, { texto, priority, notas, state = 'HAN
   // "" faria a Meta recusar a mensagem e o log culpar a entrega, quando o que
   // aconteceu é que não havia nada a dizer de novo.
   if (texto) {
-    await enviar(from, texto);
-    registrarTurno(from, 'assistant', texto);
+    await responderLead(from, texto);
   }
   // handoffEm é o relógio do re-alerta (src/handoff-parado.js). Os contadores
   // são zerados aqui: um lead que volta a precisar de humano merece a mesma
@@ -173,8 +200,7 @@ async function handleIncomingMessage({ from, text, nome }) {
   // motivo de usá-lo.
   if (pediuDescadastro(textoOriginal)) {
     const texto = messages.descadastroConfirmado();
-    await enviar(from, texto);
-    registrarTurno(from, 'assistant', texto);
+    await responderLead(from, texto);
     saveLead(from, camposDeDescadastro());
     console.log(`[descadastro] ${from} pediu para não receber mais mensagens — atendido`);
     await gravarLeadNaPlanilha(getLead(from));
@@ -206,8 +232,7 @@ async function handleIncomingMessage({ from, text, nome }) {
   // qualquer outra coisa a quem acabou de escolher um horário.
   const respostaDeAgenda = await agendamento.confirmar(lead, textoOriginal);
   if (respostaDeAgenda) {
-    await enviar(from, respostaDeAgenda.texto);
-    registrarTurno(from, 'assistant', respostaDeAgenda.texto);
+    await responderLead(from, respostaDeAgenda.texto);
     if (respostaDeAgenda.campos) saveLead(from, respostaDeAgenda.campos);
 
     if (respostaDeAgenda.marcada) {
@@ -247,8 +272,7 @@ async function handleIncomingMessage({ from, text, nome }) {
     // ele — é a regra dele, e é a conversa em que o preço é justificado.
     if (!precoDoPlano && isPedidoDeAgendamento(textoOriginal) && agendamento.disponivel()) {
       const oferta = await agendamento.oferecer(lead);
-      await enviar(from, oferta.texto);
-      registrarTurno(from, 'assistant', oferta.texto);
+      await responderLead(from, oferta.texto);
       if (oferta.campos) saveLead(from, oferta.campos);
       if (oferta.semVagas) {
         console.warn(`[agenda] ${from}: sem horário para oferecer — ${oferta.motivo}`);
@@ -340,8 +364,7 @@ async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
   // qualquer humano.
   if (ia.intencao === 'agendar' && agendamento.disponivel()) {
     const oferta = await agendamento.oferecer(lead);
-    await enviar(from, oferta.texto);
-    registrarTurno(from, 'assistant', oferta.texto);
+    await responderLead(from, oferta.texto);
     if (oferta.campos) saveLead(from, oferta.campos);
     if (oferta.semVagas) {
       console.warn(`[agenda] ${from}: sem horário para oferecer — ${oferta.motivo}`);
@@ -397,8 +420,7 @@ async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
   }
 
   // conversando — usa o texto da própria assistente.
-  await enviar(from, ia.resposta);
-  registrarTurno(from, 'assistant', ia.resposta);
+  await responderLead(from, ia.resposta);
 
   // Só sobrescreve campo que a IA realmente extraiu: string vazia significa
   // "o lead ainda não contou", não "apague o que ele já tinha contado".
@@ -426,27 +448,23 @@ async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
 async function fluxoDeterministico(from, lead, textoOriginal) {
   switch (lead.state) {
     case 'NOVO':
-      await enviar(from, messages.boasVindas());
-      registrarTurno(from, 'assistant', messages.boasVindas());
+      await responderLead(from, messages.boasVindas());
       saveLead(from, { state: 'AGUARDANDO_MOTIVO' });
       break;
 
     case 'AGUARDANDO_MOTIVO':
-      await enviar(from, messages.perguntaHistorico());
-      registrarTurno(from, 'assistant', messages.perguntaHistorico());
+      await responderLead(from, messages.perguntaHistorico());
       saveLead(from, { motivo: textoOriginal, state: 'AGUARDANDO_HISTORICO' });
       break;
 
     case 'AGUARDANDO_HISTORICO':
-      await enviar(from, messages.perguntaFormato());
-      registrarTurno(from, 'assistant', messages.perguntaFormato());
+      await responderLead(from, messages.perguntaFormato());
       saveLead(from, { historico: textoOriginal, state: 'AGUARDANDO_FORMATO' });
       break;
 
     case 'AGUARDANDO_FORMATO': {
       const catalogo = messages.catalogo(lead.nome);
-      await enviar(from, catalogo);
-      registrarTurno(from, 'assistant', catalogo);
+      await responderLead(from, catalogo);
       saveLead(from, {
         formato: textoOriginal,
         classificacao: classificar(lead.historico),
