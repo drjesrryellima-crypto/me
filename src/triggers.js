@@ -12,12 +12,39 @@ const normalize = (text) =>
     .replace(/\s+/g, ' ') // colapsa espa\u00e7os repetidos
     .trim();
 
+// A régua é PERIGO EXPLÍCITO, definida pelo Dr. Jesrryel em 15/10/2026:
+// alguém dizendo que quer se matar, que vai se matar, que vai se cortar, ou
+// que vai machucar outra pessoa.
+//
+// Crise de ansiedade, depressão e tristeza NÃO entram. São sintomas — é
+// exatamente o que o consultório trata, e é o motivo pelo qual a maioria das
+// pessoas escreve. Tratar sintoma como emergência manda a pessoa que veio
+// pedir ajuda para o pronto-socorro, o que é a resposta errada para ela e
+// esvazia a mensagem para quem precisa dela de verdade.
+//
+// Por isso saíram daqui, em 15/10/2026:
+//
+//   'nao aguento mais'          — a frase mais comum de quem está sofrendo, e
+//                                 não diz nada sobre morte ou se machucar
+//   'quero sumir'               — some da cidade, do emprego, do grupo
+//   'quero desaparecer'         — idem
+//   'sem saida', 'nao vejo saida', 'nao tem mais saida'
+//   'vida nao tem mais sentido' — sintoma de depressão, não plano
+//   'quero desistir de tudo'
+//   'vou acabar com tudo', 'quero acabar com tudo'  — acaba com o namoro, com
+//                                 o curso; sem dizer com o quê, não é explícito
+//   'nao aguento mais essa vida' — "essa vida" é a situação, não a vida
+//
+// O que ficou nomeia morte, se machucar, ou machucar alguém. Sempre.
+//
+// E a lista ganhou o que faltava: risco a TERCEIROS. Até aqui o sistema só
+// olhava para o risco da própria pessoa.
 const CRISIS_PHRASES = [
+  // intenção contra a própria vida
   'quero morrer',
   'quero morre',
   'nao aguento mais viver',
-  'nao aguento mais essa vida',
-  'nao aguento mais',
+  'nao vale a pena viver',
   'cansei de viver',
   'pensando em me matar',
   'penso em me matar',
@@ -26,28 +53,29 @@ const CRISIS_PHRASES = [
   'quero me matar',
   'quero me suicidar',
   'penso em me suicidar',
+  'penso em suicidio',
   'cometer suicidio',
+  'tirar minha vida',
+  'acabar com a minha vida',
+  'acabar com a propria vida',
+  'nao quero mais existir',
+  'melhor eu nao existir',
+  'seria melhor eu nao existir',
+
+  // se machucar
   'me machucar',
   'me cortar',
   'me cortando',
   'automutilacao',
-  'tirar minha vida',
-  'acabar com a minha vida',
-  'acabar com a propria vida',
-  'vou acabar com tudo',
-  'quero acabar com tudo',
-  'nao quero mais existir',
-  'melhor eu nao existir',
-  'seria melhor eu nao existir',
-  'quero sumir',
-  'quero desaparecer',
-  'sem saida',
-  'nao vejo saida',
-  'nao tem mais saida',
-  'vida nao tem mais sentido',
-  'nao vale a pena viver',
-  'penso em suicidio',
-  'quero desistir de tudo',
+
+  // machucar outra pessoa — faltava no sistema inteiro até 15/10/2026
+  'matar alguem',
+  'machucar alguem',
+  'matar ele',
+  'matar ela',
+  'machucar ele',
+  'machucar ela',
+  'fazer mal pra alguem',
 ];
 
 // Perguntar o preço é intenção de compra, mas de um tipo diferente de "quero

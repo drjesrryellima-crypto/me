@@ -24,7 +24,7 @@ const respostaIA = (over = {}) => ({
   ...over,
 });
 
-test('risco sinalizado pela IA vai pra handoff mesmo sem bater nas palavras-chave', async () => {
+test('risco sinalizado pela IA orienta para a urgência, sem acionar o médico', async () => {
   limpar();
   const phone = '5584911111111';
   createLeadIfMissing(phone);
@@ -33,8 +33,11 @@ test('risco sinalizado pela IA vai pra handoff mesmo sem bater nas palavras-chav
   await aplicarRespostaDaIA(phone, getLead(phone), respostaIA({ intencao: 'risco' }), 'tá tudo escuro pra mim');
 
   const lead = getLead(phone);
-  assert.strictEqual(lead.state, 'HANDOFF');
+  // Fica registrado para o painel — não avisar não é o mesmo que não registrar.
   assert.match(lead.notas, /RISCO\/CRISE/);
+  // Mas NÃO vai para HANDOFF: lá a assistente fica calada, e desde 15/10/2026
+  // ninguém é avisado para assumir essa conversa.
+  assert.notStrictEqual(lead.state, 'HANDOFF');
   limpar();
 });
 

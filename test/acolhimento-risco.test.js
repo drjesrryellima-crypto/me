@@ -22,9 +22,19 @@ test('dá o caminho para risco imediato, não só o telefone de escuta', () => {
   assert.match(texto, /192/);
 });
 
-test('o 188 vem ANTES de falar do médico — ele pode estar dormindo', () => {
+// Desde 15/10/2026 o risco não aciona o médico, por decisão dele: quem está em
+// risco iminente precisa de um serviço que atende 24 horas, não de um WhatsApp
+// de consultório. O teste anterior checava que o 188 vinha ANTES do nome do
+// médico; agora o nome dele não pode aparecer de jeito nenhum.
+test('a mensagem não promete que o médico vai procurar a pessoa', () => {
   const texto = messages.acolhimentoRisco();
-  assert.ok(texto.indexOf('188') < texto.indexOf('Jesrryel'), 'o médico aparece antes do CVV');
+  assert.doesNotMatch(texto, /Jesrryel/, 'prometer o médico sem avisá-lo é mentir para quem está em crise');
+  assert.doesNotMatch(texto, /avisado|vai te procurar|já chamei/i);
+});
+
+// O que substituiu a promessa: dizer a verdade sobre o que este canal é.
+test('a mensagem é honesta sobre o que este canal não consegue fazer', () => {
+  assert.match(messages.acolhimentoRisco(), /não consegue te acompanhar/i);
 });
 
 test('diz para não esperar pelo médico', () => {

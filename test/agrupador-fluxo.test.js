@@ -47,7 +47,10 @@ test('sinal de crise não espera o agrupamento', async () => {
 
   assert.equal(enviados.length, 1, 'a crise ficou esperando o timer');
   assert.match(enviados[0], /188/);
-  assert.equal(state.getLead('558499687397').state, 'HANDOFF');
+  // Desde 15/10/2026 a crise NÃO muda o estado. Se mudasse para HANDOFF a
+  // assistente ficaria calada para essa pessoa — e como o médico também não é
+  // mais avisado, ela escreveria de novo e não receberia nada.
+  assert.notEqual(state.getLead('558499687397').state, 'HANDOFF');
 });
 
 // O que já estava no buffer precisa ir junto, senão fica pendurado num timer

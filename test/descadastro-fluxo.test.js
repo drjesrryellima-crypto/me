@@ -49,8 +49,11 @@ test('sinal de crise ganha do descadastro', async () => {
   const { state, flow, enviados } = montar();
   await flow.handleIncomingMessage({ from: '558499687397', text: 'quero me matar' });
 
-  assert.equal(state.getLead('558499687397').state, 'HANDOFF');
+  // O que importa aqui é a PRECEDÊNCIA: ninguém é descadastrado no meio de um
+  // pedido de socorro. A crise não muda mais o estado (ver flow.js), então o
+  // que se verifica é que a resposta foi a de risco, não a de descadastro.
   assert.match(enviados[0].body, /188/);
+  assert.notEqual(state.getLead('558499687397').state, 'DESCADASTRADO');
 });
 
 test('descadastrado que volta a escrever não recebe resposta do bot, mas avisa o médico', async () => {

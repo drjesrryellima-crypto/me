@@ -50,8 +50,15 @@ test('querer fechar ou marcar vai para o humano', async () => {
   assert.equal(await estadoApos('quero agendar'), 'HANDOFF');
 });
 
-test('crise continua ganhando de tudo', async () => {
-  assert.equal(await estadoApos('quero me matar'), 'HANDOFF');
+// Crise continua ganhando de tudo na PRECEDÊNCIA — ela é checada antes de
+// qualquer outra coisa. O que mudou em 15/10/2026 é o desfecho: orienta para
+// 188/192 e não aciona o médico, então também não vira HANDOFF.
+test('crise continua ganhando de tudo, e agora aponta para a urgência', async () => {
+  const { state, flow, enviados } = montar();
+  await flow.handleIncomingMessage({ from: '558499687397', text: 'quero me matar' });
+  assert.match(enviados[0], /188/);
+  assert.match(enviados[0], /192/);
+  assert.notEqual(state.getLead('558499687397').state, 'HANDOFF');
 });
 
 test('quem quer marcar não ouve o horário de novo — ouve que você vai chamar', async () => {
