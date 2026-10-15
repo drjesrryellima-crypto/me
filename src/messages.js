@@ -57,6 +57,41 @@ module.exports = {
     `Se tiver alguém de confiança por perto, chame essa pessoa pra ficar com você.\n\n` +
     `Quando você estiver em segurança, eu continuo aqui — e a gente fala sobre acompanhamento com calma. 💙`,
 
+  // Agendamento automático: as três opções, numeradas.
+  //
+  // Numeradas porque a resposta curta ("2") é a que mais aparece no WhatsApp, e
+  // é a única que o sistema lê sem risco de errar o dia. O texto pede o número
+  // em vez de deixar em aberto — quem responde "quarta de manhã" obriga a
+  // assistente a perguntar de novo.
+  oferecerVagas: (descricoes) =>
+    `Posso já deixar marcado. Estes são os horários livres mais próximos:\n\n` +
+    descricoes.map((d, i) => `*${i + 1}.* ${d}`).join('\n') +
+    `\n\nResponde com o número que funciona melhor pra você. Se nenhum servir, me diz qual período você prefere que eu procuro outro.`,
+
+  // Confirmação. Diz o que ficou marcado e o que fazer se precisar desmarcar —
+  // essa última parte evita o paciente sumir sem avisar, que é o que custa a
+  // vaga de outra pessoa.
+  consultaMarcada: (quando, formato) =>
+    `Pronto, marquei! 💙\n\n` +
+    `*${quando}*\n` +
+    (formato ? `${formato}\n` : '') +
+    `\nSe precisar remarcar ou cancelar, é só me avisar por aqui.`,
+
+  // Não deu pra entender a escolha. Repete as opções em vez de só perguntar de
+  // novo: quem respondeu errado provavelmente já não está mais vendo a
+  // mensagem anterior na tela.
+  escolhaNaoEntendida: (descricoes) =>
+    `Desculpa, não consegui entender qual horário você quer. Pode responder só com o número?\n\n` +
+    descricoes.map((d, i) => `*${i + 1}.* ${d}`).join('\n'),
+
+  // A vaga foi ocupada entre a oferta e a resposta, ou a agenda ficou sem nada
+  // no horizonte. Os dois casos acabam no mesmo lugar: o Dr. Jesrryel resolve.
+  vagaPerdida: () =>
+    `Esse horário acabou de ser preenchido, me desculpe. Vou avisar o Dr. Jesrryel pra ele te passar uma opção. Já volto com você 💙`,
+
+  semVagas: () =>
+    `Não encontrei horário livre nos próximos dias por aqui. Vou avisar o Dr. Jesrryel pra ele ver uma data com você. Já volto 💙`,
+
   handoffCompra: () =>
     `Que bom que você quer dar esse passo. Vou te colocar em contato com o Dr. Jesrryel agora mesmo pra continuarmos essa conversa com todo o cuidado que ela merece. Já volto com você 💙`,
 

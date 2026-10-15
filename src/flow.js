@@ -14,6 +14,7 @@ const { explicarErroMeta } = require('./erros-meta');
 const { registrarEnvio } = require('./freio');
 const { agrupar, esvaziar } = require('./agrupador');
 const { MARCA_RISCO } = require('./estados');
+const agendamento = require('./agendamento');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
@@ -92,8 +93,14 @@ async function responderRisco(from, textoOriginal) {
 }
 
 async function encaminharParaHumano(from, { texto, priority, notas, state = 'HANDOFF', ultimaMensagem }) {
-  await enviar(from, texto);
-  registrarTurno(from, 'assistant', texto);
+  // texto vazio = a pessoa JÁ foi respondida por quem chamou (é o caso do
+  // agendamento que falhou, que pede desculpa antes de passar a bola). Mandar
+  // "" faria a Meta recusar a mensagem e o log culpar a entrega, quando o que
+  // aconteceu é que não havia nada a dizer de novo.
+  if (texto) {
+    await enviar(from, texto);
+    registrarTurno(from, 'assistant', texto);
+  }
   // handoffEm é o relógio do re-alerta (src/handoff-parado.js). Os contadores
   // são zerados aqui: um lead que volta a precisar de humano merece a mesma
   // insistência do primeiro handoff, não o saldo gasto no anterior.
@@ -192,6 +199,40 @@ async function handleIncomingMessage({ from, text, nome }) {
     return;
   }
 
+  // PRIORIDADE 1.8 — o paciente está respondendo a uma oferta de horário.
+  //
+  // Antes do bloco de compra, de propósito: "2" não parece pedido de
+  // agendamento nenhum, e cair no fluxo normal faria a assistente responder
+  // qualquer outra coisa a quem acabou de escolher um horário.
+  const respostaDeAgenda = await agendamento.confirmar(lead, textoOriginal);
+  if (respostaDeAgenda) {
+    await enviar(from, respostaDeAgenda.texto);
+    registrarTurno(from, 'assistant', respostaDeAgenda.texto);
+    if (respostaDeAgenda.campos) saveLead(from, respostaDeAgenda.campos);
+
+    if (respostaDeAgenda.marcada) {
+      console.log(`[agenda] ${from}: consulta marcada — ${respostaDeAgenda.quando}`);
+      await telegram.enviarAlerta(
+        `📅 CONSULTA MARCADA\n` +
+        `${respostaDeAgenda.quando}\n` +
+        `${lead.nome || '(sem nome)'} — ${from}\n` +
+        (linkDaConversa(from) ? `Abrir conversa: ${linkDaConversa(from)}\n` : '') +
+        `Formato: ${lead.formato || 'a confirmar'}`
+      );
+    } else if (respostaDeAgenda.falhou) {
+      // Falha aqui vira handoff de verdade: a pessoa tentou marcar e não
+      // conseguiu por culpa do sistema, não dela.
+      console.warn(`[agenda] ${from}: não deu para marcar — ${respostaDeAgenda.motivo}`);
+      await encaminharParaHumano(from, {
+        texto: '', priority: 'AGENDAMENTO FALHOU',
+        notas: `Quis marcar e o sistema não conseguiu: ${respostaDeAgenda.motivo}`,
+        ultimaMensagem: textoOriginal,
+      });
+    }
+    await gravarLeadNaPlanilha(getLead(from));
+    return;
+  }
+
   // PRIORIDADE 2 — o que a assistente NÃO resolve, por palavra-chave.
   //
   // Esta lista encolheu muito. Antes pegava "pix", "cartao", "quanto custa" e
@@ -200,6 +241,27 @@ async function handleIncomingMessage({ from, text, nome }) {
   // aqui ficou só o que é de fato do humano: fechar um programa, e marcar.
   if (isBuyingSignal(textoOriginal)) {
     const precoDoPlano = isPrecoDoPlano(textoOriginal);
+
+    // Quer marcar E o agendamento está ligado: o bot resolve, em vez de pôr
+    // mais uma pessoa na fila do médico. Valor de programa continua indo para
+    // ele — é a regra dele, e é a conversa em que o preço é justificado.
+    if (!precoDoPlano && isPedidoDeAgendamento(textoOriginal) && agendamento.disponivel()) {
+      const oferta = await agendamento.oferecer(lead);
+      await enviar(from, oferta.texto);
+      registrarTurno(from, 'assistant', oferta.texto);
+      if (oferta.campos) saveLead(from, oferta.campos);
+      if (oferta.semVagas) {
+        console.warn(`[agenda] ${from}: sem horário para oferecer — ${oferta.motivo}`);
+        await encaminharParaHumano(from, {
+          texto: '', priority: 'SEM HORÁRIO PARA OFERECER',
+          notas: `Quis marcar e não havia vaga: ${oferta.motivo}`,
+          ultimaMensagem: textoOriginal,
+        });
+      }
+      await gravarLeadNaPlanilha(getLead(from));
+      return;
+    }
+
     await encaminharParaHumano(from, {
       texto: precoDoPlano ? messages.handoffValor() : messages.handoffAgendamento(),
       priority: 'INTENÇÃO DE COMPRA',
@@ -269,6 +331,37 @@ async function handleIncomingMessage({ from, text, nome }) {
 async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
   if (ia.intencao === 'risco') {
     await responderRisco(from, textoOriginal);
+    return;
+  }
+
+  // Quer marcar, e o agendamento está ligado: o bot resolve. Cai aqui quando a
+  // pessoa pediu com palavras que a lista de gatilhos não pega — "pode ser
+  // quinta?" não parece pedido de agendamento para um regex, e parece para
+  // qualquer humano.
+  if (ia.intencao === 'agendar' && agendamento.disponivel()) {
+    const oferta = await agendamento.oferecer(lead);
+    await enviar(from, oferta.texto);
+    registrarTurno(from, 'assistant', oferta.texto);
+    if (oferta.campos) saveLead(from, oferta.campos);
+    if (oferta.semVagas) {
+      console.warn(`[agenda] ${from}: sem horário para oferecer — ${oferta.motivo}`);
+      await encaminharParaHumano(from, {
+        texto: '', priority: 'SEM HORÁRIO PARA OFERECER',
+        notas: `Quis marcar e não havia vaga: ${oferta.motivo}`,
+        ultimaMensagem: textoOriginal,
+      });
+    }
+    return;
+  }
+
+  // Sem agendamento configurado, quem quer marcar volta a ser do médico.
+  if (ia.intencao === 'agendar') {
+    await encaminharParaHumano(from, {
+      texto: messages.handoffAgendamento(),
+      priority: 'QUER MARCAR CONSULTA',
+      notas: 'Quer marcar e o agendamento automático está desligado',
+      ultimaMensagem: textoOriginal,
+    });
     return;
   }
 
