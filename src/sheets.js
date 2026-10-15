@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const { opcoesDeAuth, contaEmUso } = require('./google-credenciais');
 const { estagioCrm, ehRisco } = require('./estados');
+const { ehTeste } = require('./numeros-de-teste');
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || 'Leads';
@@ -160,6 +161,13 @@ async function appendLeadRow(lead) {
 // falhado. Ela não falhou: o paciente foi respondido. Só o espelho ficou
 // desatualizado, e o log fazia parecer coisa muito pior do que é.
 async function gravarLeadNaPlanilha(lead) {
+  // Teste do médico não é paciente: fora do CRM. A planilha é o que ele olha
+  // para saber quantas pessoas chegaram — um teste ali é um número errado.
+  if (ehTeste(lead && lead.phone)) {
+    console.log(`[sheets] ${lead.phone} é número de teste — fora da planilha.`);
+    return;
+  }
+
   try {
     await appendLeadRow(lead);
   } catch (err) {

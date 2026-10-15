@@ -393,11 +393,38 @@ dia.
 | App na Meta | `1364610259160568` — "Recomeco Constancia C..." (Em desenvolvimento) |
 | Número do consultório | +55 84 99838-7075 — ID `1336481699545220`, conta `964855363000657` |
 | Número de teste da Meta | +1 555 324 4505 — ID `1350488121473466` |
-| Celular pessoal (recebe teste) | +55 84 99968-7397 — na lista da Meta, cadastrado SEM o nono dígito: +55 84 9968-7397 |
+| Celulares do médico (números de teste) | +55 84 99968-7397 (`558499687397`) e +55 84 99709-6643 (`558497096643`) — os dois estão em `NUMEROS_DE_TESTE`. O 7397 está na lista da Meta cadastrado SEM o nono dígito: +55 84 9968-7397 |
 | Número que responde | +1 555 191 8167 — ID `1319832967883574` |
 | Servidor | https://me-production-a9ec.up.railway.app |
 | Planilha CRM | `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg` |
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
+
+### Por que os seus números aparecem no painel
+
+Tudo que está no painel entrou pelo 7075 — não existe outro caminho de entrada.
+O webhook só recebe o que a Meta entrega para o número do consultório. Então uma
+linha com `558497096643` quer dizer **aquele número escreveu para o 7075**, não
+que a conversa aconteceu no celular pessoal.
+
+Os dois celulares do médico (7397 e 6643) escreveram para o 7075 em testes, e o
+bot os registrou como lead qualquer. Isso sujava três coisas: a conta de leads do
+painel e da planilha, a fila de follow-up **pago** e os alertas no celular.
+
+`NUMEROS_DE_TESTE` resolve. O bot continua respondendo — é disso que o teste
+serve — mas para de tratar o teste como paciente:
+
+| Onde | O que muda |
+|---|---|
+| Painel | fora da lista por padrão; reaparece marcado `(teste)` com a opção "mostrar meus números de teste", porque esconder não pode virar perder (ele ainda precisa poder reativar um teste travado em HANDOFF) |
+| Planilha de CRM | não grava |
+| Follow-up D+2/D+3/D+5/D+7 | não envia (é mensagem paga) |
+| Alerta de handoff e de handoff parado | não dispara; só fica no log |
+
+**A armadilha do nono dígito.** O mesmo celular aparece em duas formas: como
+está na agenda (`+55 84 99709-6643`, 13 dígitos) e como a Meta entrega no
+`wa_id` (`558497096643`, 12 dígitos). Comparar texto com texto deixaria a lista
+sem efeito nenhum — e sem quebrar nada, sem avisar nada. Por isso todo telefone
+passa por `canonizar()` antes de ser comparado (`src/numeros-de-teste.js`).
 | Projeto no Google Cloud | `project-30779c3d-8dbe-48db-927` |
 
 ## O teto de gastos é nosso, não da Meta

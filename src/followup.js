@@ -5,6 +5,7 @@ const { explicarErroMeta } = require('./erros-meta');
 const { planejarFollowup } = require('./followup-plano');
 const { registrarEnvio } = require('./freio');
 const { registrarTemplate } = require('./orcamento');
+const { ehTeste } = require('./numeros-de-teste');
 
 // MVP simples: roda uma vez por dia (09:00) e verifica, para cada lead com
 // followupsAgendados = true, quantos dias se passaram desde que o catálogo
@@ -33,6 +34,11 @@ async function checarFollowups(agora = new Date()) {
   const leads = readAll();
   for (const phone of Object.keys(leads)) {
     const lead = leads[phone];
+
+    // Follow-up é mensagem PAGA. Mandar para o número do próprio médico é
+    // cobrar dele para avisá-lo de algo que ele mesmo escreveu.
+    if (ehTeste(phone)) continue;
+
     const plano = planejarFollowup(lead, agora);
     if (plano.acao === 'nada') continue;
 
