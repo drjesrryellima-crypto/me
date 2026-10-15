@@ -22,6 +22,15 @@ const FRASES_QUE_NAO_SAO_CRISE = [
   'qual o endereço?',
   'você é robô?',
   'tem horário amanhã?',
+  // Sintomas, não perigo explícito (régua do Dr. Jesrryel, 15/10/2026). São o
+  // motivo pelo qual quase todo mundo escreve para um consultório de saúde
+  // mental — mandar essa gente para o pronto-socorro é a resposta errada.
+  'não aguento mais',
+  'quero sumir',
+  'não vejo saída',
+  'a vida não tem mais sentido',
+  'estou tendo uma crise de ansiedade',
+  'estou muito triste',
 ];
 
 test('as palavras-chave nunca acusaram essas frases', () => {
@@ -44,10 +53,13 @@ test('o prompt cita o caso que aconteceu de verdade', () => {
 
 // O conserto não pode virar o contrário: deixar de acusar crise de verdade é
 // muito pior que o falso positivo que ele resolve.
-test('o viés de segurança continua escrito, para sofrimento real', () => {
+// A régua passou a ser perigo EXPLÍCITO, não "sofrimento que não dá pra
+// medir": sintoma de saúde mental é o que o consultório trata, não emergência.
+test('o prompt define risco como perigo explícito, e diz que sintoma não é', () => {
   const p = systemPrompt();
-  assert.match(p, /errar para menos custa uma vida/i);
-  assert.match(p, /risco à própria vida/i);
+  assert.match(p, /perigo explícito/i);
+  assert.match(p, /NÃO são risco\. São sintomas/);
+  assert.match(p, /machucar outra pessoa/);
 });
 
 test('a instrução antiga, que causou o erro, não voltou', () => {
@@ -56,8 +68,14 @@ test('a instrução antiga, que causou o erro, não voltou', () => {
 
 // As palavras-chave continuam pegando o que sempre pegaram: elas são a rede
 // que não depende de modelo nenhum.
-test('crise de verdade continua sendo pega pelas palavras-chave', () => {
-  for (const frase of ['quero morrer', 'não aguento mais', 'penso em me matar', 'quero sumir']) {
+test('perigo explícito continua sendo pego pelas palavras-chave', () => {
+  const perigo = [
+    'quero morrer', 'penso em me matar', 'vou me matar', 'quero me suicidar',
+    'vou me cortar', 'automutilação',
+    // Risco a terceiros: faltava no sistema inteiro até 15/10/2026.
+    'vou machucar alguém', 'vou matar ela',
+  ];
+  for (const frase of perigo) {
     assert.equal(isCrisisSignal(frase), true, `deixou passar: "${frase}"`);
   }
 });

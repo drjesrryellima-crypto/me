@@ -10,7 +10,8 @@ test('reconhece sinal de crise com acento, pontuação e caixa variada', () => {
     'QUERO MORRER',
     'às vezes penso em me matar',
     'sinto que não vale a pena viver...',
-    'só quero sumir',
+    // 'só quero sumir' saiu em 15/10/2026: sumir da cidade, do emprego, do
+    // grupo. Ver a régua de perigo explícito no topo de src/triggers.js.
   ];
   for (const frase of frases) {
     assert.strictEqual(isCrisisSignal(frase), true, `não detectou crise em: "${frase}"`);
