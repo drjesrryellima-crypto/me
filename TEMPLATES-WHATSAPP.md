@@ -28,6 +28,25 @@ mudar essa história". Isso é promessa de resultado terapêutico: problema com 
 Meta (política de saúde) e problema com o CFM (Res. 1.974/2011 proíbe promessa
 de resultado em publicidade médica). Saiu.
 
+**Todos abrem com "Bom dia!" e dizem quem está falando.** Desde 15/10/2026 o
+bot se apresenta na primeira fala de qualquer conversa (ver `src/abertura.js`),
+e um template que chega sem isso quebraria a regra justamente em quem nunca
+conversou — que é quem mais precisa saber de quem é a mensagem.
+
+O cumprimento é **fixo**, e isso é uma escolha, não descuido. Duas razões:
+
+1. Variável no começo do corpo é **reprovação automática** na Meta. `{{1}}! Aqui
+   é do consultório...` nem chega a ser avaliado.
+2. Não precisa ser dinâmico: os seis saem às **9h de Mossoró**. O follow-up
+   deste repositório roda às 9h (`FOLLOWUP_HORA`) e o disparo do Meta Ads
+   também — confirmado no log dele em 15/10/2026:
+   `[disparo] agendador: todo dia as 9h (Mossoro), modo REAL`.
+
+**Se um dia o horário mudar para a tarde, o "Bom dia" vira mentira** e os seis
+templates precisam ser recadastrados. É o preço de não ter variável, e vale a
+pena — mas é a primeira coisa a lembrar ao mexer em `FOLLOWUP_HORA` ou em
+`SEND_HOUR`.
+
 **Nenhum dos quatro diz "psiquiatra".** Mesma resolução: você é pós-graduado,
 não tem o título de especialista registrado. Anunciar especialidade que não se
 tem é infração ética. Os textos falam do consultório, não de especialidade.
@@ -45,7 +64,7 @@ tem é infração ética. Os textos falam do consultório, não de especialidade
 **Corpo:**
 
 ```
-Oi! Aqui é do consultório do Dr. Jesrryel Lima. Separei um material que conversa com o que você me contou. Se quiser dar uma olhada com calma, é só responder aqui que eu te envio.
+Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente dele. Separei um material que conversa com o que você me contou. Se quiser dar uma olhada com calma, é só responder aqui que eu te envio.
 ```
 
 ---
@@ -61,7 +80,7 @@ Oi! Aqui é do consultório do Dr. Jesrryel Lima. Separei um material que conver
 **Corpo:**
 
 ```
-Oi! Passando pra saber se ficou alguma dúvida sobre o que a gente conversou. Se quiser perguntar qualquer coisa, é só responder aqui — eu leio e te respondo.
+Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente dele. Passando pra saber se ficou alguma dúvida sobre o que a gente conversou. Se quiser perguntar qualquer coisa, é só responder aqui — eu leio e te respondo.
 ```
 
 > Categoria Utilidade porque é retorno a uma conversa que a própria pessoa
@@ -81,7 +100,7 @@ Oi! Passando pra saber se ficou alguma dúvida sobre o que a gente conversou. Se
 **Corpo:**
 
 ```
-Oi! Tem mais um material aqui que costuma ajudar quem está começando agora. Se fizer sentido pra você, me responde que eu te mando.
+Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente dele. Tem mais um material aqui que costuma ajudar quem está começando agora. Se fizer sentido pra você, me responde que eu te mando.
 ```
 
 ---
@@ -97,7 +116,7 @@ Oi! Tem mais um material aqui que costuma ajudar quem está começando agora. Se
 **Corpo:**
 
 ```
-Oi! Que tal marcarmos uma conversa de 15 minutos, com calma, pra tirar suas dúvidas? Me responde aqui com o período que funciona melhor pra você — manhã, tarde ou noite — e eu te passo os horários.
+Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente dele. Que tal marcarmos uma conversa de 15 minutos, com calma, pra tirar suas dúvidas? Me responde aqui com o período que funciona melhor pra você — manhã, tarde ou noite — e eu te passo os horários.
 ```
 
 > Pergunta período, não horário específico, porque o bot não tem sua agenda. O
@@ -137,11 +156,15 @@ ESTADO-DO-PROJETO.md), não o follow-up daqui.
 **Corpo:**
 
 ```
-Oi! Aqui é o time do Dr. Jesrryel Lima, em Mossoró. Você deixou seu contato pedindo informações sobre acompanhamento em saúde mental. Posso te explicar por aqui como funciona o atendimento e responder o que você quiser saber — é só responder esta mensagem. Se preferir não receber mais, responda PARAR.
+Bom dia! Aqui é do consultório do Dr. Jesrryel Lima, em Mossoró — eu sou a assistente dele. Você deixou seu contato pedindo informações sobre acompanhamento em saúde mental. Posso te explicar por aqui como funciona o atendimento e responder o que você quiser saber — é só responder esta mensagem. Se preferir não receber mais, responda PARAR.
 ```
 
 > Utilidade porque responde a um pedido que a própria pessoa fez no formulário.
 > Se a Meta reclassificar para Marketing, continua valendo — só muda o preço.
+
+> **Quando sai:** no primeiro disparo que alcança esse lead na fila — não no dia
+> em que ele preencheu o formulário. Com teto de 50/dia, uma lista grande se
+> espalha por vários dias, e a ordem é qualificado → recente → morno → frio.
 
 ### 6. Segundo toque do Meta Ads
 
@@ -154,8 +177,17 @@ Oi! Aqui é o time do Dr. Jesrryel Lima, em Mossoró. Você deixou seu contato p
 **Corpo:**
 
 ```
-Oi! Faz um tempo que você deixou seu contato pedindo informações sobre acompanhamento em saúde mental com o Dr. Jesrryel Lima, em Mossoró. Se ainda fizer sentido pra você, me responde que eu te explico como funciona — presencial ou online. Se não fizer mais, responda PARAR que eu não te procuro de novo.
+Bom dia! Aqui é do consultório do Dr. Jesrryel Lima, em Mossoró — eu sou a assistente dele. Faz um tempo que você deixou seu contato pedindo informações sobre acompanhamento em saúde mental. Se ainda fizer sentido pra você, me responde que eu te explico como funciona — presencial ou online. Se não fizer mais, responda PARAR que eu não te procuro de novo.
 ```
+
+> **Quando sai: 3 dias depois do primeiro**, contados de quando a primeira
+> mensagem saiu de verdade (`day0_at`), não do formulário — e **só para quem não
+> respondeu nada**. Qualquer resposta marca o lead como `responded` e tira ele da
+> fila; dali em diante quem conversa é a assistente. É D0 e D+3, não D0 e D+1:
+> um dia depois é cedo para quem nunca escreveu para o número, e parece cobrança.
+>
+> Os dois passos valem para os **quatro** segmentos. O segmento escolhe a ORDEM
+> da fila, nunca o texto (`SEQUENCES` em `templates.py`).
 
 ### O PARAR precisa valer nos dois lados
 
