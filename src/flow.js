@@ -13,6 +13,7 @@ const assistente = require('./assistente');
 const { explicarErroMeta } = require('./erros-meta');
 const { registrarEnvio } = require('./freio');
 const { agrupar, esvaziar } = require('./agrupador');
+const { MARCA_RISCO } = require('./estados');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
@@ -65,6 +66,29 @@ function registrarTurno(phone, role, content) {
   // é o bot, o que faria a janela parecer aberta depois de fechada.
   if (role === 'user') campos.ultimaEntradaEm = new Date().toISOString();
   return saveLead(phone, campos);
+}
+
+// Risco NÃO chama o médico. Decisão dele, em 15/10/2026, e clinicamente a
+// certa: quem está em risco iminente precisa de serviço de urgência 24h, não
+// de um WhatsApp de consultório. O alerta criava a expectativa errada dos dois
+// lados — a pessoa esperando o médico, e o médico recebendo um chamado que não
+// é dele atender.
+//
+// Duas coisas que esta função faz questão de NÃO fazer:
+//
+// - não manda alerta. É o ponto da mudança.
+// - não muda o estado para HANDOFF. Se mudasse, a assistente ficaria calada
+//   para essa pessoa (ver o início de handleIncomingMessage) e, como ninguém
+//   é avisado, ela escreveria de novo e não receberia NADA. Alguém em crise
+//   falando com o silêncio é pior que o problema que a mudança resolve.
+//
+// A marca de risco continua indo para as notas: o painel precisa mostrar quem
+// passou por isso. Não avisar não é o mesmo que não registrar.
+async function responderRisco(from, textoOriginal) {
+  await enviar(from, messages.acolhimentoRisco());
+  registrarTurno(from, 'assistant', messages.acolhimentoRisco());
+  saveLead(from, { notas: `${MARCA_RISCO} — orientado a 188/192, médico não acionado` });
+  console.log(`[flow] ${from}: risco — orientado a serviço de urgência (sem alerta ao médico)`);
 }
 
 async function encaminharParaHumano(from, { texto, priority, notas, state = 'HANDOFF', ultimaMensagem }) {
@@ -125,12 +149,7 @@ async function handleIncomingMessage({ from, text, nome }) {
   // instrução de sinalizar risco também (ver PRIORIDADE 4), mas como segunda
   // camada — nunca como a única.
   if (isCrisisSignal(textoOriginal)) {
-    await encaminharParaHumano(from, {
-      texto: messages.acolhimentoRisco(),
-      priority: 'RISCO/CRISE — URGENTE',
-      notas: 'RISCO/CRISE detectado — handoff prioritário',
-      ultimaMensagem: textoOriginal,
-    });
+    await responderRisco(from, textoOriginal);
     return;
   }
 
@@ -249,12 +268,7 @@ async function handleIncomingMessage({ from, text, nome }) {
 // ou em que um deslize custa caro (falar preço numa resposta de compra).
 async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
   if (ia.intencao === 'risco') {
-    await encaminharParaHumano(from, {
-      texto: messages.acolhimentoRisco(),
-      priority: 'RISCO/CRISE — URGENTE',
-      notas: 'RISCO/CRISE sinalizado pela assistente (não pegou nas palavras-chave)',
-      ultimaMensagem: textoOriginal,
-    });
+    await responderRisco(from, textoOriginal);
     return;
   }
 

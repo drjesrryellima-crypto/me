@@ -36,11 +36,26 @@ module.exports = {
   // 3. Diz explicitamente para não esperar pelo médico. A versão anterior
   //    prometia "vou te colocar em contato com alguém agora mesmo" e deixava a
   //    pessoa aguardando um contato que depende de um humano acordar.
+  // O texto mais importante do sistema, e o único que não pode prometer nada
+  // que este canal não cumpra.
+  //
+  // A versão anterior terminava com "O Dr. Jesrryel já foi avisado e vai te
+  // procurar". Desde 15/10/2026 o risco NÃO alerta mais o celular do médico —
+  // decisão dele, e clinicamente a certa: quem está em risco iminente precisa
+  // de um serviço de urgência que atende 24 horas, não de um WhatsApp de
+  // consultório que pode estar sem ninguém olhando às 3 da manhã. Esperar pelo
+  // médico é justamente o que não se deve fazer.
+  //
+  // Então a promessa saiu junto com o alerta. Dizer "ele vai te procurar" sem
+  // ninguém ser avisado seria mentir para alguém em crise — o pior lugar
+  // possível para uma mentira de conveniência.
   acolhimentoRisco: () =>
     `Obrigado por me dizer isso. O que você está sentindo é sério, e você não precisa atravessar isso sozinho(a).\n\n` +
-    `Se a vontade de se machucar estiver presente agora, ligue *188*. É o CVV — gratuito, 24 horas, e tem uma pessoa pronta pra te ouvir neste momento.\n\n` +
-    `Se o risco for imediato, procure o pronto-socorro mais próximo ou ligue *192* (SAMU).\n\n` +
-    `O Dr. Jesrryel já foi avisado e vai te procurar. Mas não espere por isso se você precisar de ajuda agora — o 188 atende neste instante.`,
+    `Preciso ser honesta com você: este canal é do consultório e não consegue te acompanhar neste momento. Mas existe ajuda agora, de verdade:\n\n` +
+    `Ligue *188* — é o CVV. Gratuito, 24 horas, e tem uma pessoa pronta pra te ouvir neste instante.\n\n` +
+    `Se o risco for imediato, procure o pronto-socorro mais próximo ou ligue *192* (SAMU). Não espere passar sozinho(a).\n\n` +
+    `Se tiver alguém de confiança por perto, chame essa pessoa pra ficar com você.\n\n` +
+    `Quando você estiver em segurança, eu continuo aqui — e a gente fala sobre acompanhamento com calma. 💙`,
 
   handoffCompra: () =>
     `Que bom que você quer dar esse passo. Vou te colocar em contato com o Dr. Jesrryel agora mesmo pra continuarmos essa conversa com todo o cuidado que ela merece. Já volto com você 💙`,
