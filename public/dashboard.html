@@ -283,6 +283,9 @@
   /* --- tabela --- */
   .filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
   .filtros input[type="search"] { flex: 1 1 200px; min-width: 160px; }
+  .f-teste { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; white-space: nowrap; }
+  tr.teste td { opacity: .6; }
+  tr.teste td.principal::after { content: ' (teste)'; color: #94a3b8; font-weight: 400; }
 
   .rolagem { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -394,6 +397,7 @@
         <option value="">Risco: todos</option>
         <option value="sim">Só sinal de risco</option>
       </select>
+      <label class="f-teste"><input type="checkbox" id="f-testes"> mostrar meus números de teste</label>
     </div>
     <div class="rolagem">
       <table>
@@ -828,7 +832,8 @@
       var cls = classeTag(l.state, l.risco);
       var rotulo = rotulos[l.state] || l.state;
       var esperando = l.state === 'HANDOFF' && l.handoffEm && !l.atendidoEm;
-      return '<tr' + (esperando ? ' class="esperando"' : '') + '>' +
+      var classeLinha = [esperando ? 'esperando' : '', l.teste ? 'teste' : ''].join(' ').trim();
+      return '<tr' + (classeLinha ? ' class="' + classeLinha + '"' : '') + '>' +
         '<td class="principal">' + esc(l.phone) + '</td>' +
         '<td>' + (esc(l.nome) || '—') + '</td>' +
         '<td><span class="tag ' + cls + '">' +
@@ -1147,7 +1152,8 @@
   }
 
   function carregar() {
-    var url = '/api/leads' + (TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '');
+    var url = comToken('/api/leads');
+    if ($('f-testes').checked) url += (url.indexOf('?') >= 0 ? '&' : '?') + 'testes=1';
     return fetch(url, { headers: { 'Accept': 'application/json' } })
       .then(function (r) {
         return r.json().catch(function () { return {}; }).then(function (corpo) {
@@ -1195,6 +1201,10 @@
   });
 
   // ---------- eventos ----------
+
+  // Este filtro muda o que o SERVIDOR manda, não o que a tela mostra: precisa
+  // de carregar(), não de render().
+  $('f-testes').addEventListener('change', carregar);
 
   ['f-busca', 'f-estado', 'f-classe', 'f-risco'].forEach(function (id) {
     $(id).addEventListener('input', renderTabela);

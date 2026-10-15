@@ -10,6 +10,7 @@ const { lerAgenda, salvarAgenda, validarAgenda, descreverAgenda, DIAS } = requir
 const { sendText } = require('./whatsapp');
 const { explicarErroMeta } = require('./erros-meta');
 const { ETAPA_QUALIFICACAO, ETAPA_FOLLOWUP, ROTULO_ESTADO, ehRisco } = require('./estados');
+const { ehTeste, configurados } = require('./numeros-de-teste');
 
 const TOKEN = process.env.DASHBOARD_TOKEN;
 const PAGE = path.join(__dirname, '..', 'public', 'dashboard.html');
@@ -178,6 +179,7 @@ function montarLinhas(leads) {
     state: lead.state || 'NOVO',
     notas: lead.notas || '',
     risco: ehRisco(lead),
+    teste: ehTeste(lead.phone),
     followupsEnviados: lead.followupsEnviados || [],
     catalogoEnviadoEm: lead.catalogoEnviadoEm || null,
     createdAt: lead.createdAt || null,
@@ -198,11 +200,25 @@ function criarRouter() {
     res.sendFile(PAGE);
   });
 
+  // Os números de teste do médico ficam fora por padrão: o painel é a conta de
+  // quantas PESSOAS chegaram, e um teste dele ali é um número errado. Ficam
+  // acessíveis com ?testes=1 porque ele ainda precisa poder reativar um teste
+  // que travou em HANDOFF — esconder não pode virar perder.
   router.get('/api/leads', exigirToken, (req, res) => {
     try {
-      const leads = Object.values(readAll());
+      const todos = Object.values(readAll());
+      const mostrarTestes = req.query.testes === '1';
+      const leads = mostrarTestes ? todos : todos.filter((l) => !ehTeste(l.phone));
       leads.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
-      res.json({ resumo: montarResumo(leads), leads: montarLinhas(leads) });
+      res.json({
+        resumo: montarResumo(leads),
+        leads: montarLinhas(leads),
+        testes: {
+          configurados: configurados(),
+          escondidos: mostrarTestes ? 0 : todos.length - leads.length,
+          mostrando: mostrarTestes,
+        },
+      });
     } catch (err) {
       console.error('[dashboard] erro ao montar dados:', err.message);
       res.status(500).json({ erro: 'falha ao ler os leads' });

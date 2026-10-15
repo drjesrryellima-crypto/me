@@ -16,6 +16,7 @@ const { readAll, saveLead } = require('./state');
 const { ehRisco } = require('./estados');
 const telegram = require('./telegram');
 const { linkDaConversa } = require('./link-whatsapp');
+const { ehTeste } = require('./numeros-de-teste');
 
 // Crise: 20 min, até 6 vezes (2h de insistência). Depois para — se em duas
 // horas ninguém apareceu, insistir mais não resolve, e o paciente já recebeu
@@ -126,6 +127,8 @@ async function checarHandoffsParados(agora = new Date()) {
 
   for (const phone of Object.keys(leads)) {
     const lead = leads[phone];
+    if (ehTeste(phone)) continue;
+
     const plano = planejarRealerta(lead, agora);
     if (!plano.realertar) continue;
 

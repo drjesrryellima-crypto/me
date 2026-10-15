@@ -1,6 +1,7 @@
 const axios = require('axios');
 const telegram = require('./telegram');
 const { linkDaConversa } = require('./link-whatsapp');
+const { ehTeste } = require('./numeros-de-teste');
 
 const WEBHOOK_URL = process.env.HANDOFF_ALERT_WEBHOOK_URL;
 
@@ -19,6 +20,13 @@ const WEBHOOK_URL = process.env.HANDOFF_ALERT_WEBHOOK_URL;
 // para quem e por qual motivo — a frase do paciente não precisa ficar escrita
 // num servidor de terceiro, e é justamente a mais sensível do sistema.
 async function sendHandoffAlert({ priority, phone, motivo, classificacao, ultimaMensagem }) {
+  // Teste do médico não toca o celular do médico. O log registra que passou
+  // por aqui, para que um alerta que não chegou não pareça alerta perdido.
+  if (ehTeste(phone)) {
+    console.log(`[alert] ${phone} é número de teste — handoff registrado, ninguém avisado.`);
+    return;
+  }
+
   // O link vem logo abaixo do telefone porque é ele que o médico vai tocar.
   // O Telegram transforma URL em plano em link clicável sozinho, então não
   // precisa de parse_mode — que exigiria escapar a frase do paciente e poderia
