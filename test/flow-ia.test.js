@@ -7,6 +7,7 @@ const DATA = path.join(__dirname, '..', 'data');
 const limpar = () => fs.rmSync(DATA, { recursive: true, force: true });
 
 const { aplicarRespostaDaIA } = require('../src/flow');
+const { saudacao } = require('../src/abertura');
 const { getLead, createLeadIfMissing } = require('../src/state');
 
 // Sem WHATSAPP_TOKEN o envio falha e é engolido pelo enviar() do flow.js —
@@ -120,7 +121,11 @@ test('a conversa fica registrada no histórico pra virar contexto da próxima me
   // A apresentação é colada pelo responderLead() na primeira fala do bot, e o
   // histórico guarda o que de fato SAIU — senão o painel mostraria a conversa
   // sem ela e o médico não teria como saber se o bot se apresentou.
-  assert.ok(ultimo.content.startsWith('Boa '), ultimo.content);
+  // Não dá para fixar a palavra: ela muda com a hora de Mossoró. A primeira
+  // versão deste teste checava startsWith('Boa ') e passava de madrugada,
+  // quebrando sozinha às 5h quando vira "Bom dia" — teste que falha pelo
+  // relógio e não pelo código.
+  assert.ok(ultimo.content.startsWith(`${saudacao()}! Aqui é do consultório`), ultimo.content);
   assert.ok(ultimo.content.includes('consultório do Dr. Jesrryel Lima'), ultimo.content);
   assert.ok(ultimo.content.endsWith('Oi! Como posso ajudar?'), ultimo.content);
   // 'em' é o que permite o painel mostrar QUANDO cada fala aconteceu. Não vai
