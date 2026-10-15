@@ -302,6 +302,52 @@ Duas consequências de ter dois remetentes no mesmo número:
   derruba a nota do número que o funil também usa. Acompanhar em WhatsApp
   Manager → Números de telefone; se cair para Média, é sinal para agir.
 
+## O bot marca a consulta sozinho
+
+Desde 15/10/2026, quem quer marcar não entra mais na sua fila. O bot lê a
+agenda do Google, oferece três horários livres e cria o compromisso.
+
+| Peça | O que faz |
+|---|---|
+| `src/vagas.js` | calcula os horários livres: faixas do consultório menos o que já está ocupado |
+| `src/google-agenda.js` | lê a agenda e cria o compromisso |
+| `src/escolha-vaga.js` | lê qual opção o paciente escolheu |
+| `src/agendamento.js` | junta as três e devolve o texto |
+
+**Para funcionar, duas coisas fora do código:**
+
+1. a agenda `drjesrryelsilva@gmail.com` compartilhada com a conta de serviço
+   `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com`, com
+   permissão de **fazer alterações nos eventos** (só ver não serve);
+2. `GOOGLE_CALENDAR_ID` na Railway com o endereço dessa agenda.
+
+Sem a variável o agendamento fica **desligado** e quem quer marcar volta a ser
+encaminhado — de propósito: melhor a fila antiga do que chutar em qual agenda
+escrever.
+
+### O que o compromisso leva, e o que não leva
+
+Vai nome, telefone e formato. **O motivo clínico não vai.** Agenda espelha em
+celular, relógio e notificação na tela de bloqueio — o que a pessoa contou
+sobre a saúde dela não viaja junto. Quem precisa do motivo abre o painel.
+
+### Quatro armadilhas que os testes travam
+
+- **fuso.** Mossoró é UTC-3 e o servidor roda em UTC. Consulta às 22h de terça
+  já é quarta em UTC; sem tratar, o paciente recebe a confirmação do dia errado.
+- **encostar não é sobrepor.** Evento que termina 14h não bloqueia a vaga das
+  14h — senão todo almoço comia a primeira consulta da tarde.
+- **a vaga precisa caber.** A última da manhã é 11h, não 12h.
+- **"pode ser 2a feira" não é a opção 2.** É segunda-feira. Este marcava o
+  horário errado sem ninguém notar.
+
+### Quem ainda vai para você
+
+Só quem pergunta **valor ou funcionamento dos programas** de acompanhamento —
+é a conversa em que o preço é justificado, e é a regra que você definiu. Mais
+o agendamento que falhar: a pessoa tentou marcar e o sistema não conseguiu,
+então vira handoff com o motivo escrito.
+
 ## Onde fica cada coisa
 
 A conta tem 6 projetos na Railway com nome sorteado, 7 contas de WhatsApp com
