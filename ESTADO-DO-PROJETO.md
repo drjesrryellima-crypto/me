@@ -449,6 +449,28 @@ serve — mas para de tratar o teste como paciente:
 | Planilha de CRM | não grava |
 | Follow-up D+2/D+3/D+5/D+7 | não envia (é mensagem paga) |
 | Alerta de handoff e de handoff parado | não dispara; só fica no log |
+| HANDOFF / DESQUALIFICADO | **não entra**. Recebe o mesmo texto do paciente e segue conversando |
+
+**A armadilha do silêncio permanente, que custou um susto.** HANDOFF e
+DESQUALIFICADO deixam a automação calada de propósito — é para não atropelar o
+humano que assumiu. Mas para um número de teste nenhum humano assume, porque o
+alerta não dispara. O primeiro commit tratou do alerta e esqueceu do estado: o
+teste caía em HANDOFF e ficava mudo **para sempre**, o bot esperando um humano e
+o humano nunca avisado. Porta trancada e chave jogada fora no mesmo commit.
+
+Aconteceu em 15/10/2026 às 05:02 e só apareceu às 08:15, quando o médico
+escreveu de novo e não recebeu nada:
+
+```
+05:02:47  [alert] 558497096643 é número de teste — handoff registrado, ninguém avisado.
+08:15:41  [flow] ... em estado HANDOFF — ignorada pela automação.
+```
+
+Agora `encaminharParaHumano` não move um número de teste para estado calado: ele
+recebe o mesmo texto que o paciente receberia (é disso que o teste serve), a nota
+fica registrada para o painel, e a conversa segue. O aviso de "voltou a escrever
+em HANDOFF" também passou a respeitar a lista — era o último alerta que ainda
+tocava o celular do médico por um teste dele.
 
 **A armadilha do nono dígito.** O mesmo celular aparece em duas formas: como
 está na agenda (`+55 84 99709-6643`, 13 dígitos) e como a Meta entrega no

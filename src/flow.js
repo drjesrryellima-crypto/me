@@ -16,6 +16,7 @@ const { agrupar, esvaziar } = require('./agrupador');
 const { MARCA_RISCO } = require('./estados');
 const agendamento = require('./agendamento');
 const { comAbertura } = require('./abertura');
+const { ehTeste } = require('./numeros-de-teste');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
@@ -128,6 +129,26 @@ async function encaminharParaHumano(from, { texto, priority, notas, state = 'HAN
   if (texto) {
     await responderLead(from, texto);
   }
+
+  // Número de teste NÃO entra em estado calado, e isto foi aprendido doendo.
+  //
+  // HANDOFF e DESQUALIFICADO existem para a automação não atropelar o humano
+  // que assumiu a conversa. Para um número de teste nenhum humano assume: o
+  // alerta não dispara, por decisão de 15/10/2026. O resultado era silêncio
+  // permanente — o bot calado esperando um humano, e o humano nunca avisado.
+  // A porta trancada e a chave jogada fora no mesmo commit.
+  //
+  // O teste recebe o MESMO texto que o paciente receberia (é disso que o teste
+  // serve) e segue conversando. A nota fica registrada para o painel mostrar
+  // que ali teria havido um handoff.
+  if (ehTeste(from)) {
+    if (notas) saveLead(from, { notas });
+    console.log(
+      `[flow] ${from} é número de teste — ${state} simulado (ninguém assumiria), a conversa segue.`
+    );
+    return;
+  }
+
   // handoffEm é o relógio do re-alerta (src/handoff-parado.js). Os contadores
   // são zerados aqui: um lead que volta a precisar de humano merece a mesma
   // insistência do primeiro handoff, não o saldo gasto no anterior.
@@ -315,7 +336,11 @@ async function handleIncomingMessage({ from, text, nome }) {
     // Calada para o paciente, sim. Calada para o médico também, não: alguém em
     // HANDOFF que volta a escrever está esperando agora, e até aqui isso só
     // virava linha de log.
-    const plano = planejarAvisoDeRetorno(lead);
+    // Era o último alerta que ainda tocava o celular do médico por causa de um
+    // teste dele: o sendHandoffAlert foi fechado em 15/10/2026, este tinha
+    // ficado aberto. Vale para os leads de teste que JÁ estão em HANDOFF de
+    // antes — depois do portão acima, nenhum novo entra.
+    const plano = ehTeste(from) ? { avisar: false } : planejarAvisoDeRetorno(lead);
     if (plano.avisar) {
       const texto = montarTexto(lead, textoOriginal, plano);
       console.log(
