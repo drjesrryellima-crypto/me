@@ -12,7 +12,7 @@ const DIA = 86400000;
 function montar(teto) {
   process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'orcf-'));
   process.env.TETO_TEMPLATES_DIA = String(teto);
-  for (const c of ['D2', 'D3', 'D5', 'D7']) {
+  for (const c of ['D3', 'D5', 'D7']) {
     process.env[`WHATSAPP_TEMPLATE_${c}`] = `followup_${c.toLowerCase()}`;
   }
   for (const m of ['../src/state', '../src/followup', '../src/whatsapp', '../src/freio', '../src/orcamento', '../src/followup-plano']) {
@@ -26,13 +26,13 @@ function montar(teto) {
 
 test('o teto diário segura um disparo em massa que o freio deixaria passar', async () => {
   const { state, followup, enviados } = montar(5);
-  // 40 leads diferentes, todos vencendo D2 hoje: o freio por pessoa libera
+  // 40 leads diferentes, todos vencendo D3 hoje: o freio por pessoa libera
   // todos, porque é um por número.
   for (let i = 0; i < 40; i++) {
     state.saveLead(`5584990${String(i).padStart(4, '0')}`, {
       state: 'CATALOGO_ENVIADO',
       followupsAgendados: true,
-      catalogoEnviadoEm: new Date(Date.now() - 2 * DIA).toISOString(),
+      catalogoEnviadoEm: new Date(Date.now() - 3 * DIA).toISOString(),
     });
   }
 
@@ -47,7 +47,7 @@ test('abaixo do teto, o dia inteiro roda normalmente', async () => {
     state.saveLead(`5584991${String(i).padStart(4, '0')}`, {
       state: 'CATALOGO_ENVIADO',
       followupsAgendados: true,
-      catalogoEnviadoEm: new Date(Date.now() - 2 * DIA).toISOString(),
+      catalogoEnviadoEm: new Date(Date.now() - 3 * DIA).toISOString(),
     });
   }
 
@@ -63,7 +63,7 @@ test('lead barrado pelo teto não é dado como enviado', async () => {
     state.saveLead(`5584992${String(i).padStart(4, '0')}`, {
       state: 'CATALOGO_ENVIADO',
       followupsAgendados: true,
-      catalogoEnviadoEm: new Date(Date.now() - 2 * DIA).toISOString(),
+      catalogoEnviadoEm: new Date(Date.now() - 3 * DIA).toISOString(),
     });
   }
 

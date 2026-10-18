@@ -12,7 +12,7 @@ async function comAmbiente(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'followup-'));
   const antes = { ...process.env };
   process.env.DATA_DIR = dir;
-  process.env.WHATSAPP_TEMPLATE_D2 = 'lembrete_d2';
+  process.env.WHATSAPP_TEMPLATE_D3 = 'lembrete_d3';
   for (const m of Object.keys(require.cache)) {
     if (m.includes('/src/')) delete require.cache[m];
   }

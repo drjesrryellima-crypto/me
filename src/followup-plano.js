@@ -17,8 +17,13 @@
 // conversa nenhuma; só lembra a pessoa de que ela é uma linha numa planilha.
 const TOLERANCIA_DIAS = 3;
 
+// O D+2 saiu em 18/10/2026: o médico apagou o template na Meta e a sequência
+// passou a ser D+3, D+5, D+7. Dois dias é cedo para quem acabou de conversar.
+//
+// 'D2' continua reconhecido como etapa JÁ RESOLVIDA (ver jaResolvidas abaixo)
+// e FOLLOWUP_D2 continua em estados.js: há leads antigos carregando isso no
+// disco e na planilha, e some do futuro não é some do passado.
 const ETAPAS = [
-  { dia: 2, chave: 'D2', variavel: 'WHATSAPP_TEMPLATE_D2' },
   { dia: 3, chave: 'D3', variavel: 'WHATSAPP_TEMPLATE_D3' },
   { dia: 5, chave: 'D5', variavel: 'WHATSAPP_TEMPLATE_D5' },
   { dia: 7, chave: 'D7', variavel: 'WHATSAPP_TEMPLATE_D7' },
@@ -63,7 +68,7 @@ function planejarFollowup(lead, agora = new Date()) {
   // UMA por rodada. O agendador roda uma vez por dia; mandar duas de uma vez
   // seria conversa nenhuma, seria disparo.
   //
-  // A mais antiga das que estão no prazo: se D2 e D3 venceram juntas, a
+  // A mais antiga das que estão no prazo: se D3 e D5 venceram juntas, a
   // sequência começa onde devia começar, não no meio.
   return {
     acao: 'enviar',

@@ -129,9 +129,6 @@ module.exports = {
     `Se um dia você quiser retomar, é só escrever de novo — a porta continua aberta.\n\n` +
     `E se em algum momento você precisar de ajuda imediata, o *188* (CVV) atende de graça, 24 horas.`,
 
-  followupD2: () =>
-    `Separei um conteúdo que fala exatamente sobre o que você me contou — acho que vai fazer sentido pra você. Dá uma olhada com calma 💙\n[link do conteúdo]`,
-
   followupD3: (nome) =>
     `Oi${nome ? ', ' + nome : ''}! Passando aqui só pra saber: ficou alguma dúvida sobre o Recomeço ou o Constância? Pode perguntar à vontade, tô por aqui.`,
 

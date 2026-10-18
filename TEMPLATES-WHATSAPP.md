@@ -1,7 +1,12 @@
-# Os 4 templates de follow-up — prontos pra colar
+# Os 3 templates de follow-up — prontos pra colar
 
-Os follow-ups de D+2, D+3, D+5 e D+7 caem **fora** da janela de 24h da Meta.
-Fora dela não existe texto livre: só template aprovado. Por isso estes quatro.
+Os follow-ups de D+3, D+5 e D+7 caem **fora** da janela de 24h da Meta.
+Fora dela não existe texto livre: só template aprovado. Por isso estes três.
+
+> **O D+2 saiu em 18/10/2026.** O médico apagou `followup_d2_conteudo` na Meta
+> e a sequência passou a ser D+3, D+5, D+7 — dois dias é cedo para quem acabou
+> de conversar. `WHATSAPP_TEMPLATE_D2` na Railway não é mais lido; pode apagar
+> a variável quando for mexer lá, ou deixar, que não faz nada.
 
 Onde cadastrar: **Meta Business Suite → WhatsApp Manager → Modelos de mensagem
 → Criar modelo**.
@@ -10,20 +15,20 @@ Onde cadastrar: **Meta Business Suite → WhatsApp Manager → Modelos de mensag
 
 ## Decisões que tomei nos textos, e por quê
 
-**Nenhum dos quatro tem variável.** Os textos antigos tinham `{{nome}}` e
+**Nenhum dos três tem variável.** Os textos antigos tinham `{{nome}}` e
 `{{horários}}`. Cada variável é um lugar a mais pra Meta reprovar (variável no
 começo ou no fim do corpo é reprovação automática) e um lugar a mais pra falhar
 no envio: se o lead nunca disse o nome, o parâmetro vai vazio e a Meta recusa a
 mensagem inteira. Sem variável, o template aprova mais rápido e não tem como
 quebrar.
 
-**Nenhum dos quatro manda link.** Isto é de propósito, e é o truque que resolve
+**Nenhum dos três manda link.** Isto é de propósito, e é o truque que resolve
 o problema todo: **quando a pessoa responde, a janela de 24h reabre** — e aí o
 bot pode mandar texto livre, link, o que for, sem template nenhum. Então o
 template não precisa carregar o conteúdo. Ele só precisa fazer a pessoa
 responder.
 
-**Nenhum dos quatro promete resultado.** O texto antigo do D+5 dizia "dá pra
+**Nenhum dos três promete resultado.** O texto antigo do D+5 dizia "dá pra
 mudar essa história". Isso é promessa de resultado terapêutico: problema com a
 Meta (política de saúde) e problema com o CFM (Res. 1.974/2011 proíbe promessa
 de resultado em publicidade médica). Saiu.
@@ -47,29 +52,13 @@ templates precisam ser recadastrados. É o preço de não ter variável, e vale 
 pena — mas é a primeira coisa a lembrar ao mexer em `FOLLOWUP_HORA` ou em
 `SEND_HOUR`.
 
-**Nenhum dos quatro diz "psiquiatra".** Mesma resolução: você é pós-graduado,
+**Nenhum dos três diz "psiquiatra".** Mesma resolução: você é pós-graduado,
 não tem o título de especialista registrado. Anunciar especialidade que não se
 tem é infração ética. Os textos falam do consultório, não de especialidade.
 
 ---
 
-## 1. D+2 — conteúdo
-
-| | |
-|---|---|
-| **Nome** | `followup_d2_conteudo` |
-| **Categoria** | Marketing |
-| **Idioma** | Português (BR) |
-
-**Corpo:**
-
-```
-Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente dele. Separei um material que conversa com o que você me contou. Se quiser dar uma olhada com calma, é só responder aqui que eu te envio.
-```
-
----
-
-## 2. D+3 — dúvida
+## 1. D+3 — dúvida
 
 | | |
 |---|---|
@@ -89,7 +78,7 @@ Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente de
 
 ---
 
-## 3. D+5 — segundo conteúdo
+## 2. D+5 — segundo conteúdo
 
 | | |
 |---|---|
@@ -105,7 +94,7 @@ Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente de
 
 ---
 
-## 4. D+7 — convite pra conversa
+## 3. D+7 — convite pra conversa
 
 | | |
 |---|---|
@@ -128,7 +117,7 @@ Bom dia! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente de
 
 ## Os leads do Meta Ads são outra conversa
 
-Os quatro `followup_*` acima são do **funil**: gente que clicou no Instagram,
+Os três `followup_*` acima são do **funil**: gente que clicou no Instagram,
 escreveu para o 7075 e conversou com a assistente. "Passando pra saber se ficou
 alguma dúvida" faz sentido para elas.
 
@@ -145,7 +134,7 @@ ignora ou responde PARAR, em vez de denunciar.
 Quem dispara para essa lista é o serviço `whatsapp-leads-disparo` (ver
 ESTADO-DO-PROJETO.md), não o follow-up daqui.
 
-### 5. Primeiro contato do Meta Ads
+### 4. Primeiro contato do Meta Ads
 
 | | |
 |---|---|
@@ -166,7 +155,7 @@ Bom dia! Aqui é do consultório do Dr. Jesrryel Lima, em Mossoró — eu sou a 
 > em que ele preencheu o formulário. Com teto de 50/dia, uma lista grande se
 > espalha por vários dias, e a ordem é qualificado → recente → morno → frio.
 
-### 6. Segundo toque do Meta Ads
+### 5. Segundo toque do Meta Ads
 
 | | |
 |---|---|
@@ -206,7 +195,6 @@ Cada template aprovado vira uma variável na Railway:
 
 | Template | Variável |
 |---|---|
-| `followup_d2_conteudo` | `WHATSAPP_TEMPLATE_D2` |
 | `followup_d3_duvida` | `WHATSAPP_TEMPLATE_D3` |
 | `followup_d5_conteudo` | `WHATSAPP_TEMPLATE_D5` |
 | `followup_d7_conversa` | `WHATSAPP_TEMPLATE_D7` |
@@ -226,13 +214,13 @@ em `pt_BR` (`sendTemplate` em `src/whatsapp.js`). Um template com o texto em
 português mas registrado como **English** não é encontrado: o envio é recusado
 e aquele follow-up some sem nunca ter saído.
 
-Aconteceu em 14/10/2026: os quatro foram criados e ficaram ativos, mas D+5 e
+Aconteceu em 14/10/2026: os quatro de então foram criados e ficaram ativos, mas D+5 e
 D+7 saíram marcados como English. Texto em português, idioma inglês — a lista
 de templates mostra os dois "Ativo", e nada na tela diz que metade da sequência
 não ia funcionar. Só apareceu porque o idioma estava num print.
 
 A Meta não checa se o texto bate com o idioma declarado, então esse erro não dá
-aviso nenhum. **Depois de criar, olhe a coluna Idioma da lista.** Os quatro
+aviso nenhum. **Depois de criar, olhe a coluna Idioma da lista.** Os três
 precisam dizer Portuguese (BR).
 
 Corrigir é recriar o template com o mesmo nome em Portuguese (BR) — a versão em
@@ -246,7 +234,7 @@ Desde 04/10/2026 o bot reconhece **PARAR**, **SAIR**, **CANCELAR**,
 **DESCADASTRAR**, **REMOVER**, **PARE** e **STOP**. Quem escreve uma dessas
 recebe uma confirmação e não recebe mais nada.
 
-Então os quatro templates podem ganhar esta linha no fim, se você quiser:
+Então os três templates podem ganhar esta linha no fim, se você quiser:
 
 ```
 Se não quiser mais receber mensagens, é só responder PARAR.

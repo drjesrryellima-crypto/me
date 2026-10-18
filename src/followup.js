@@ -18,10 +18,10 @@ const funil = require('./funil');
 // follow-ups de D+2, D+3, D+5, D+7 quase certamente vão cair fora dessa janela.
 // Por isso os follow-ups são enviados via sendTemplate, não sendText.
 //
-// Os textos em messages.js (followupD2/D3/D5/D7) não são mais enviados
+// Os textos em messages.js (followupD3/D5/D7) não são mais enviados
 // diretamente — eles servem de referência do conteúdo a cadastrar como
 // template no Meta Business Manager. Depois de criar e ter cada template
-// aprovado, coloque o nome dele nas variáveis WHATSAPP_TEMPLATE_D2/D3/D5/D7
+// aprovado, coloque o nome dele nas variáveis WHATSAPP_TEMPLATE_D3/D5/D7
 // do .env (veja .env.example e a seção "Limitação importante" do README).
 
 const TEMPLATE_LANGUAGE = process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'pt_BR';

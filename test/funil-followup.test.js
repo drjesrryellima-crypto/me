@@ -23,7 +23,6 @@ async function comAmbiente(linhasDaPlanilha, fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'funil-'));
   const antes = { ...process.env };
   process.env.DATA_DIR = dir;
-  process.env.WHATSAPP_TEMPLATE_D2 = 'followup_d2_conteudo';
   process.env.WHATSAPP_TEMPLATE_D3 = 'followup_d3_duvida';
   delete process.env.NUMEROS_DE_TESTE;
   for (const m of Object.keys(require.cache)) {
@@ -59,10 +58,10 @@ async function comAmbiente(linhasDaPlanilha, fn) {
 const linha = (phone, dataBR, estagio = 'Consulta Proposta', escolha = '') =>
   ['Ana', phone, 'WhatsApp', 'ansiedade', estagio, dataBR, escolha, 'Online'];
 
-test('lead da planilha com 2 dias recebe o D2', async () => {
-  await comAmbiente(planilha(linha('5584988880001', diasAtras(2))), async ({ checarFollowups, enviados }) => {
+test('lead da planilha com 3 dias recebe o D3', async () => {
+  await comAmbiente(planilha(linha('5584988880001', diasAtras(3))), async ({ checarFollowups, enviados }) => {
     await checarFollowups();
-    assert.deepStrictEqual(enviados, [{ phone: '5584988880001', template: 'followup_d2_conteudo' }]);
+    assert.deepStrictEqual(enviados, [{ phone: '5584988880001', template: 'followup_d3_duvida' }]);
   });
 });
 
@@ -75,15 +74,24 @@ test('lead antigo na planilha não leva uma rajada de templates', async () => {
   });
 });
 
+// O D+2 saiu da sequência em 18/10/2026: o médico apagou o template na Meta.
+// Dois dias depois do catálogo não vence mais etapa nenhuma.
+test('lead da planilha com 2 dias não recebe nada', async () => {
+  await comAmbiente(planilha(linha('5584988880008', diasAtras(2))), async ({ checarFollowups, enviados }) => {
+    await checarFollowups();
+    assert.deepStrictEqual(enviados, []);
+  });
+});
+
 test('quem ainda está em Qualificação não recebe nada', async () => {
-  await comAmbiente(planilha(linha('5584988880003', diasAtras(2), 'Qualificação')), async ({ checarFollowups, enviados }) => {
+  await comAmbiente(planilha(linha('5584988880003', diasAtras(3), 'Qualificação')), async ({ checarFollowups, enviados }) => {
     await checarFollowups();
     assert.deepStrictEqual(enviados, []);
   });
 });
 
 test('quem já escolheu não recebe nada', async () => {
-  await comAmbiente(planilha(linha('5584988880004', diasAtras(2), 'Consulta Proposta', 'Programa')), async ({ checarFollowups, enviados }) => {
+  await comAmbiente(planilha(linha('5584988880004', diasAtras(3), 'Consulta Proposta', 'Programa')), async ({ checarFollowups, enviados }) => {
     await checarFollowups();
     assert.deepStrictEqual(enviados, []);
   });
@@ -91,8 +99,8 @@ test('quem já escolheu não recebe nada', async () => {
 
 // Duas rodadas no mesmo dia (um redeploy, por exemplo) não podem cobrar duas
 // vezes pela mesma etapa.
-test('rodar duas vezes não manda o mesmo D2 de novo', async () => {
-  await comAmbiente(planilha(linha('5584988880005', diasAtras(2))), async ({ checarFollowups, enviados }) => {
+test('rodar duas vezes não manda o mesmo D3 de novo', async () => {
+  await comAmbiente(planilha(linha('5584988880005', diasAtras(3))), async ({ checarFollowups, enviados }) => {
     await checarFollowups();
     await checarFollowups();
     assert.strictEqual(enviados.length, 1);
@@ -102,7 +110,7 @@ test('rodar duas vezes não manda o mesmo D2 de novo', async () => {
 // A planilha é espelho, não dono: quem pediu PARAR fica fora mesmo
 // continuando listado lá.
 test('quem pediu PARAR não volta pela planilha', async () => {
-  await comAmbiente(planilha(linha('5584988880006', diasAtras(2))), async ({ checarFollowups, enviados, state }) => {
+  await comAmbiente(planilha(linha('5584988880006', diasAtras(3))), async ({ checarFollowups, enviados, state }) => {
     state.saveLead('5584988880006', { phone: '5584988880006', state: 'DESCADASTRADO' });
     await checarFollowups();
     assert.deepStrictEqual(enviados, []);
@@ -120,10 +128,10 @@ test('falha ao ler a planilha não derruba a rodada', async () => {
       state: 'CATALOGO_ENVIADO',
       followupsAgendados: true,
       followupsEnviados: [],
-      catalogoEnviadoEm: new Date(Date.now() - 2 * 86400000).toISOString(),
+      catalogoEnviadoEm: new Date(Date.now() - 3 * 86400000).toISOString(),
     });
 
     await checarFollowups();
-    assert.deepStrictEqual(enviados, [{ phone: '5584988880007', template: 'followup_d2_conteudo' }]);
+    assert.deepStrictEqual(enviados, [{ phone: '5584988880007', template: 'followup_d3_duvida' }]);
   });
 });
