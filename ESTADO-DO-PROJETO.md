@@ -399,6 +399,74 @@ dia.
 | Planilha CRM | `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg` |
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 
+### O fluxo do n8n — fora do repositório (18/10/2026)
+
+O repositório **não é o sistema inteiro**. Quem conversa com o paciente é o
+workflow **`My workflow 6`** (id `HctF6Mva99VAPzlu`, em
+`drjesrryellima.app.n8n.cloud`), e ele não está neste código. Foi o que
+produziu a bagunça das 21 mensagens em 14/10; antes de procurar bug aqui,
+olhe lá.
+
+**Como a mensagem chega:** a Meta entrega para o n8n (a credencial
+`WhatsApp OAuth account 2` registra o webhook sozinha ao ativar o fluxo — não
+há URL de callback para colar nem token de verificação). O n8n repassa toda
+mensagem recebida para o `whatsapp-leads-disparo` (nó `HTTP Request`), que usa
+isso para tirar da fila quem respondeu. **Este bot não recebe mais mensagem
+nenhuma**; ele só lê a planilha (follow-up) e responde à ponte de agendamento.
+
+**O caminho do paciente, em ordem:** crise? → preocupação → cidade → formato →
+apresenta os programas → escolhe programa ou consulta. Cada etapa grava na aba
+`FUNIL` (gid `729736578`, cabeçalho na linha 4) e a próxima mensagem lê de lá em
+que etapa a pessoa está.
+
+**Régua de crise** (nó `Sinal de crise?`): só perigo explícito — querer se
+matar, se cortar, se machucar, machucar outra pessoa. Desabafo ("não aguento
+mais") segue a conversa. É a mesma lista de `CRISIS_PHRASES` em `triggers.js`;
+mudou num lugar, mude no outro.
+
+**Agendamento — cinco nós, e o que cada um garante:**
+
+| Nó | Para quê |
+|---|---|
+| `Oferecer horários` | pergunta ao bot os três horários livres |
+| `Mandar horários` | manda ao paciente; **se a ponte falhar, manda o contato da clínica** em vez de texto vazio |
+| `Confirmar horário` | manda a resposta crua do paciente para o bot entender qual opção foi |
+| `Sem oferta aberta?` | separa "escolheu um horário" de "mandou outra coisa"; **trata erro da ponte como "sem oferta"** e cai no encaminhamento para a clínica |
+| `Mandar resposta do agendamento` | manda o "marcado!" ou o "não entendi qual" |
+
+**O bug que custou um teste em 18/10, para não repetir:** o `Sem oferta aberta?`
+testava só `semOferta === true`. Um item de **erro** não tem `semOferta`, então
+caía no ramo de "mandar `$json.texto`", que era vazio; a Meta recusava com 400
+(*"missing 'body'"*) e o paciente ficava sem resposta nenhuma. Qualquer
+paciente no meio do agendamento durante um deploy do `me` (uns 2 segundos até
+uns 15) teria o mesmo destino. Hoje a condição é
+`semOferta === true || !texto`.
+
+**Toda mudança por MCP salva como rascunho.** O `update_workflow` não coloca
+nada no ar: é preciso `publish_workflow` com o `versionId` novo, e conferir que
+`activeVersionId` mudou. Pegou três vezes no dia (régua de crise, nós de
+agendamento, correção do `Sem oferta aberta?`) — a última com o fluxo
+funcionando "no rascunho" enquanto o paciente seguia no texto antigo.
+
+**O token da ponte** (`AGENDAMENTO_TOKEN`) mora em dois lugares que precisam ser
+iguais: a variável na Railway e o cabeçalho `X-Agendamento-Token` dos nós
+`Oferecer horários` e `Confirmar horário`. Foi trocado em 18/10 porque a
+primeira versão apareceu no chat. Para trocar de novo: nova variável na
+Railway, **esperar o deploy subir**, e só então atualizar os dois nós — nessa
+ordem o intervalo em que os lados discordam fica em segundos, e nesse intervalo
+o paciente recebe o contato da clínica.
+
+**Para refazer um teste do zero:** apague a linha do telefone na aba `FUNIL`.
+Sem a linha, o número volta a ser lead novo e passa pela qualificação inteira.
+Com a linha antiga (`Escolha` já preenchida), toda mensagem cai direto no
+`Confirmar horário`.
+
+**Texto que ainda destoa da regra do presencial** (nó `Explicar consulta`, e
+foi decisão do médico manter o que veio do fluxo original): diz "Horários: de
+segunda a sábado, das 8h às 18h" (sem intervalo de almoço) e mostra o endereço
+como se o presencial fosse qualquer dia. Os três horários que vêm logo depois
+mostram a realidade.
+
 ### O agendamento: o n8n pergunta, este serviço calcula (18/10/2026)
 
 **Presencial é só segunda de manhã.** Regra do médico em 18/10/2026:
