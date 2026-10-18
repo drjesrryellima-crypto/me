@@ -13,7 +13,7 @@ briefing técnico. Testado localmente end-to-end (webhook → qualificação →
 - Detecção de **sinal de crise** (prioridade máxima, testada)
 - Detecção de **sinal de intenção de compra** (interrompe o fluxo em qualquer etapa, testada)
 - Registro de cada lead em arquivo local (`data/leads.json`) + integração com Google Sheets
-- Agendador dos follow-ups D+2, D+3, D+5, D+7
+- Agendador dos follow-ups D+3, D+5, D+7
 - Alerta de handoff (log no console + webhook opcional, ex: Slack/Zapier)
 - **Validação da assinatura da Meta** (`X-Hub-Signature-256`) — rejeita POST que não veio da Meta
 - **Dedupe de evento reenviado** — a Meta reenvia o mesmo evento quando o webhook demora ou falha; sem isso o lead pulava uma etapa do fluxo
@@ -397,7 +397,7 @@ só pelo `localhost` da máquina onde o servidor roda).
 ## Limitação importante: janela de 24 horas
 
 A Meta só permite **texto livre** dentro de 24h desde a última mensagem que o lead te mandou.
-Os follow-ups de D+2, D+3, D+5 e D+7 quase certamente vão cair **fora** dessa janela — nesse caso,
+Os follow-ups de D+3, D+5 e D+7 quase certamente vão cair **fora** dessa janela — nesse caso,
 a API exige o uso de um **Message Template pré-aprovado** em vez de texto livre.
 
 Os follow-ups (`src/followup.js`) já usam `sendTemplate` em vez de texto livre, então você
@@ -406,7 +406,7 @@ só vai precisar:
    [`TEMPLATES-WHATSAPP.md`](TEMPLATES-WHATSAPP.md)**, com nome, categoria e o porquê de cada
    decisão. Nenhum deles tem variável, de propósito — o documento explica.
 2. Esperar a aprovação (geralmente rápida, mas não é instantânea).
-3. Colocar o nome de cada template aprovado em `WHATSAPP_TEMPLATE_D2` / `_D3` / `_D5` / `_D7`
+3. Colocar o nome de cada template aprovado em `WHATSAPP_TEMPLATE_D3` / `_D5` / `_D7`
    no `.env` (veja `.env.example`). Enquanto uma dessas variáveis não estiver preenchida, o
    follow-up correspondente fica pulado (com aviso no log) em vez de falhar.
 4. Cadastrar forma de pagamento na conta de WhatsApp Business. Sem isso, template aprovado

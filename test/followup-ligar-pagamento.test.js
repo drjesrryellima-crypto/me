@@ -11,7 +11,7 @@ const DIA = 86400000;
 
 function montar({ comTemplates }) {
   process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-'));
-  for (const c of ['D2', 'D3', 'D5', 'D7']) {
+  for (const c of ['D3', 'D5', 'D7']) {
     if (comTemplates) process.env[`WHATSAPP_TEMPLATE_${c}`] = `followup_${c.toLowerCase()}`;
     else delete process.env[`WHATSAPP_TEMPLATE_${c}`];
   }
@@ -48,13 +48,14 @@ test('ligar o pagamento não dispara rajada em quem esfriou', async () => {
   }
 });
 
-test('quem está no prazo recebe UMA mensagem, não quatro', async () => {
+test('quem está no prazo recebe UMA mensagem, não a sequência toda', async () => {
   const { state, followup, enviados } = montar({ comTemplates: true });
-  semear(state, [2, 3, 5, 7]);
+  // Uma idade por etapa da sequência. O D+2 saiu em 18/10/2026.
+  semear(state, [3, 5, 7]);
 
   await followup.checarFollowups();
 
-  assert.equal(enviados.length, 4, 'um por lead, quatro leads');
+  assert.equal(enviados.length, 3, 'um por lead, três leads');
   const porLead = {};
   for (const e of enviados) porLead[e.to] = (porLead[e.to] || 0) + 1;
   for (const [numero, quantas] of Object.entries(porLead)) {

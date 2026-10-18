@@ -188,7 +188,7 @@ Existem dois repositórios de bot de WhatsApp na conta. **O projeto é o `me`.**
 | Máquina de estados | sim | não |
 | Assinatura da Meta | sim | não |
 | Dedupe de reenvio | sim | não |
-| Follow-ups D+2/3/5/7 | sim | não |
+| Follow-ups D+3/5/7 | sim | não |
 | CRM de 13 colunas + FUNIL | sim | grava linha solta |
 | Painel de leads | sim | não |
 
@@ -399,6 +399,59 @@ dia.
 | Planilha CRM | `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg` |
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 
+### O follow-up agora nasce da planilha (18/10/2026)
+
+Desde 18/10/2026 quem conversa com o paciente é o **fluxo do n8n**, não este
+bot — decisão do médico. O webhook da Meta aponta para o n8n, e este serviço
+não recebe mais mensagem nenhuma.
+
+Isso deixou o follow-up sem fonte: os leads nasciam das conversas daqui. A
+correção foi trocar só a FONTE, não o motor.
+
+| Peça | Quem faz |
+|---|---|
+| Conversar e qualificar | n8n |
+| Registrar o lead | n8n, na aba **FUNIL** da planilha |
+| Mandar D+3/D+5/D+7 | este bot, lendo aquela aba |
+
+**O D+2 saiu em 18/10/2026.** O médico apagou `followup_d2_conteudo` na Meta:
+dois dias é cedo para quem acabou de conversar. A sequência é D+3, D+5, D+7.
+`FOLLOWUP_D2` continua em `estados.js` e `'D2'` continua contando como etapa já
+resolvida — há leads antigos carregando isso no disco e na planilha, e sumir do
+futuro não é sumir do passado.
+
+`src/funil.js` lê a aba, descobre quem merece follow-up e coloca na fila. Dali
+em diante é o motor de sempre (`followup-plano.js`): teto de mensagens pagas
+por dia, freio por pessoa, PARAR, e **uma etapa por rodada**.
+
+**Quem entra na fila:** `Estágio` = `Consulta Proposta` **e** `Escolha` vazia.
+Ou seja: viu os dois programas e não respondeu. Quem escolheu "Programa" já
+está com o médico; quem escolheu "Consulta" já recebeu as instruções. Mandar
+"ficou alguma dúvida?" para esses dois é ruído.
+
+**O relógio é a coluna `Data 1º Contato`**, porque o n8n não grava a data da
+qualificação. É aproximação: quem demora uma semana para responder as três
+perguntas tem o D+3 já vencido no dia em que qualifica. A tolerância de 3 dias
+do `followup-plano.js` então **pula** aquelas etapas em vez de disparar uma
+rajada — erra para menos, que é o lado certo de errar com mensagem paga.
+Se um dia isso incomodar, a correção é o n8n gravar a data ao preencher
+`Formato`.
+
+**Quatro armadilhas, todas com teste que cai se a trava sumir:**
+
+| Trava | O que acontece sem ela |
+|---|---|
+| Cabeçalho na linha **4**, não na 1 | as três primeiras linhas são título e legenda; lendo da 1, "CRM" vira nome de coluna e NENHUMA linha casa — follow-up mudo, sem erro |
+| Não reancorar `catalogoEnviadoEm` | a cada leitura diária o relógio reiniciaria, o D+3 venceria sempre "amanhã" e nada sairia nunca |
+| `PARADOS` vence a planilha | quem pediu PARAR continua listado lá; sem a trava, voltaria a receber mensagem paga — LGPD art. 18 |
+| Número de teste fora | o médico testando entraria na fila paga |
+
+A leitura falhar **não derruba a rodada**: o erro é engolido e quem já está na
+fila continua sendo atendido pelo que está no disco.
+
+**Nada sai enquanto os quatro templates não estiverem aprovados em
+Portuguese (BR).** Ver TEMPLATES-WHATSAPP.md.
+
 ### Como o bot abre uma conversa
 
 Desde 15/10/2026, a primeira fala do bot em qualquer conversa é:
@@ -427,7 +480,7 @@ e não daria para saber se o bot se apresentou.
 | Caminho | Por quê |
 |---|---|
 | Resposta a risco | "Boa noite! ... 💙" na frente de "você não precisa atravessar isso sozinho(a)" muda o tom de tudo e empurra o 188 uma linha para baixo. O texto já diz "este canal é do consultório", que é a identificação que importa ali |
-| Templates (follow-up D+2/D+3/D+5/D+7 e primeiro contato do disparo) | O texto está **registrado na Meta**, não no código. Mudar a abertura deles é editar o template no Meta Business Manager e esperar aprovação |
+| Templates (follow-up D+3/D+5/D+7 e primeiro contato do disparo) | O texto está **registrado na Meta**, não no código. Mudar a abertura deles é editar o template no Meta Business Manager e esperar aprovação |
 
 ### Por que os seus números aparecem no painel
 
@@ -447,7 +500,7 @@ serve — mas para de tratar o teste como paciente:
 |---|---|
 | Painel | fora da lista por padrão; reaparece marcado `(teste)` com a opção "mostrar meus números de teste", porque esconder não pode virar perder (ele ainda precisa poder reativar um teste travado em HANDOFF) |
 | Planilha de CRM | não grava |
-| Follow-up D+2/D+3/D+5/D+7 | não envia (é mensagem paga) |
+| Follow-up D+3/D+5/D+7 | não envia (é mensagem paga) |
 | Alerta de handoff e de handoff parado | não dispara; só fica no log |
 | HANDOFF / DESQUALIFICADO | **não entra**. Recebe o mesmo texto do paciente e segue conversando |
 
@@ -852,7 +905,6 @@ caíram no mesmo dia:
 
 | Template | Variável |
 |---|---|
-| `followup_d2_conteudo` | `WHATSAPP_TEMPLATE_D2` |
 | `followup_d3_duvida` | `WHATSAPP_TEMPLATE_D3` |
 | `followup_d5_conteudo` | `WHATSAPP_TEMPLATE_D5` |
 | `followup_d7_conversa` | `WHATSAPP_TEMPLATE_D7` |
