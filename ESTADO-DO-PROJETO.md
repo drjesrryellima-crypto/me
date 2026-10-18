@@ -401,6 +401,34 @@ dia.
 
 ### O agendamento: o n8n pergunta, este serviço calcula (18/10/2026)
 
+**Presencial é só segunda de manhã.** Regra do médico em 18/10/2026:
+*"consulta presencial somente segunda pela manhã, os outros horários são todos
+por telemedicina"*. Não é preferência — nos outros turnos ele não está no
+consultório, e oferecer presencial numa quinta à tarde marcaria alguém para uma
+sala vazia.
+
+O filtro mora em `VAGAS_PRESENCIAL_EM` (`vagas.js`), padrão `seg:manha`, no
+formato `dia:turno` com as mesmas chaves da agenda. Mudar não exige tocar em
+código.
+
+A regra corta **dos dois lados**, e o segundo lado é o que protege o recurso
+escasso:
+
+| Paciente pediu | Recebe |
+|---|---|
+| Presencial | só segunda de manhã |
+| Online | tudo **menos** segunda de manhã |
+| (em branco) | tudo |
+
+Se um paciente online pudesse pegar a segunda de manhã, ele tiraria a vaga de
+quem só consegue ir pessoalmente — e aquela é a única janela presencial que
+existe na semana.
+
+O formato em branco não filtra nada de propósito: o lead pode chegar sem
+formato (áudio que a planilha não classificou, lead importado), e oferecer
+ZERO horário por causa de uma célula vazia é pior do que oferecer um que talvez
+não sirva — o paciente diria, e aí dá para corrigir.
+
 O médico quis que o bot informasse os horários livres e já marcasse. A conta
 disso já existia aqui (`vagas.js`, `google-agenda.js`, `agendamento.js`,
 `escolha-vaga.js`), mas quem fala com o paciente passou a ser o n8n.
