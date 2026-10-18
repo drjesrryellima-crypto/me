@@ -48,7 +48,10 @@ async function oferecer(lead, agora = new Date()) {
     return { texto: messages.semVagas(), semVagas: true, motivo: 'não deu para ler a agenda' };
   }
 
-  const livres = vagas.livres(lerAgenda(), agora, ocupados);
+  // O formato do lead filtra os turnos: presencial só onde o médico está no
+  // consultório (ver PRESENCIAL_EM em vagas.js). Sem isso, um paciente que
+  // pediu presencial receberia horário de telemedicina e apareceria na porta.
+  const livres = vagas.livres(lerAgenda(), agora, ocupados, vagas.HORIZONTE_DIAS, lead.formato);
   const escolhidas = vagas.sugerir(livres, 3);
   if (!escolhidas.length) {
     return { texto: messages.semVagas(), semVagas: true, motivo: 'nenhuma vaga no horizonte' };

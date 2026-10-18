@@ -25,6 +25,38 @@ const HORIZONTE_DIAS = Number(process.env.VAGAS_HORIZONTE_DIAS || 14);
 const DURACAO_MIN = CONSULTA_AVULSA.duracaoMinutos;
 
 const CHAVE_DO_DIA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
+// Onde o consultório atende PRESENCIALMENTE. Todo o resto da agenda é
+// telemedicina — regra do Dr. Jesrryel em 18/10/2026: "consulta presencial
+// somente segunda pela manhã, os outros horários são todos por telemedicina".
+//
+// Isso não é preferência, é o que ele consegue cumprir: nos outros turnos ele
+// não está no consultório. Oferecer presencial numa quinta à tarde marcaria
+// alguém para uma sala vazia.
+//
+// Cada item é "dia:turno", com as mesmas chaves da agenda (seg..dom,
+// manha/tarde). Mudar é mexer em VAGAS_PRESENCIAL_EM, sem tocar no código.
+const PRESENCIAL_EM = new Set(
+  String(process.env.VAGAS_PRESENCIAL_EM || 'seg:manha')
+    .split(/[,;\s]+/)
+    .map((p) => p.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+/** 'Presencial' ou 'Online' para um turno da agenda. */
+function modalidadeDo(diaDaSemana, turno) {
+  return PRESENCIAL_EM.has(`${CHAVE_DO_DIA[diaDaSemana]}:${turno}`) ? 'Presencial' : 'Online';
+}
+
+// Formato vazio não filtra nada. O lead pode chegar sem formato (áudio que a
+// planilha não classificou, lead importado), e oferecer ZERO horário por causa
+// de uma célula em branco seria pior do que oferecer um que talvez não sirva —
+// o paciente diria, e aí dá para corrigir.
+function serveParaFormato(modalidade, formato) {
+  const f = String(formato || '').trim().toLowerCase();
+  if (f !== 'presencial' && f !== 'online') return true;
+  return modalidade.toLowerCase() === f;
+}
 const NOME_DO_DIA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 const MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -62,8 +94,11 @@ function fatiarFaixa(dataBase, faixa) {
   return vagas;
 }
 
-/** Todos os horários que a agenda PERMITE, sem olhar o que já está ocupado. */
-function candidatos(agenda, agora, dias = HORIZONTE_DIAS) {
+/**
+ * Todos os horários que a agenda PERMITE, sem olhar o que já está ocupado.
+ * Com `formato` ('Presencial' ou 'Online'), devolve só os turnos daquele tipo.
+ */
+function candidatos(agenda, agora, dias = HORIZONTE_DIAS, formato = '') {
   const minimo = new Date(agora.getTime() + ANTECEDENCIA_HORAS * 60 * 60 * 1000);
   const lista = [];
   for (let d = 0; d <= dias; d += 1) {
@@ -71,6 +106,7 @@ function candidatos(agenda, agora, dias = HORIZONTE_DIAS) {
     const doDia = agenda[CHAVE_DO_DIA[base.diaDaSemana]];
     if (!doDia) continue;
     for (const turno of ['manha', 'tarde']) {
+      if (!serveParaFormato(modalidadeDo(base.diaDaSemana, turno), formato)) continue;
       for (const vaga of fatiarFaixa(base, doDia[turno])) {
         if (vaga >= minimo) lista.push(vaga);
       }
@@ -86,8 +122,8 @@ function conflita(inicio, fim, ocupado) {
   return inicio < new Date(ocupado.fim) && new Date(ocupado.inicio) < fim;
 }
 
-function livres(agenda, agora, ocupados = [], dias = HORIZONTE_DIAS) {
-  return candidatos(agenda, agora, dias).filter((inicio) => {
+function livres(agenda, agora, ocupados = [], dias = HORIZONTE_DIAS, formato = '') {
+  return candidatos(agenda, agora, dias, formato).filter((inicio) => {
     const fim = new Date(inicio.getTime() + DURACAO_MIN * 60000);
     return !ocupados.some((o) => conflita(inicio, fim, o));
   });
@@ -127,5 +163,6 @@ function descrever(data) {
 
 module.exports = {
   candidatos, livres, sugerir, descrever, emMossoro, conflita, fatiarFaixa,
+  modalidadeDo, serveParaFormato, PRESENCIAL_EM,
   FUSO, ANTECEDENCIA_HORAS, HORIZONTE_DIAS, DURACAO_MIN,
 };
