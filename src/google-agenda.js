@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const { opcoesDeAuth, contaEmUso } = require('./google-credenciais');
+const { ehTeste } = require('./numeros-de-teste');
 const { DURACAO_MIN } = require('./vagas');
 
 // A agenda real do médico, lida e escrita pela conta de serviço.
@@ -81,6 +82,22 @@ async function ocupados(inicio, fim) {
  * tela de bloqueio). Quem precisa do motivo abre o painel.
  */
 async function marcar({ inicio, nome, phone, formato }) {
+  // Teste do médico não vira compromisso na agenda dele.
+  //
+  // Esta é a QUINTA porta da lista de números de teste, e a última a ser
+  // fechada — em 18/10/2026, depois de um teste do 7397 criar uma consulta de
+  // verdade para as 8h do dia seguinte. As quatro primeiras (painel, planilha,
+  // follow-up pago, alerta) foram fechadas em 15/10 e esta passou batida: na
+  // época o agendamento não existia ainda.
+  //
+  // Devolve ok: true de propósito. O médico precisa ver o "marcado!" que o
+  // paciente veria — é disso que o teste serve. O que ele não precisa é de um
+  // horário fantasma ocupando a agenda de amanhã.
+  if (ehTeste(phone)) {
+    console.log(`[agenda] ${phone} é número de teste — consulta SIMULADA, nada foi criado.`);
+    return { ok: true, simulada: true, link: '' };
+  }
+
   const client = await getClient();
   if (!client || !CALENDAR_ID) return { ok: false, erro: 'agendamento automático não configurado' };
   const fim = new Date(inicio.getTime() + DURACAO_MIN * 60000);
