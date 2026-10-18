@@ -399,6 +399,54 @@ dia.
 | Planilha CRM | `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg` |
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 
+### O agendamento: o n8n pergunta, este serviço calcula (18/10/2026)
+
+O médico quis que o bot informasse os horários livres e já marcasse. A conta
+disso já existia aqui (`vagas.js`, `google-agenda.js`, `agendamento.js`,
+`escolha-vaga.js`), mas quem fala com o paciente passou a ser o n8n.
+
+Refazer em nós de fluxograma "quais horários da agenda estão livres nos
+próximos 14 dias, com 3h de antecedência, descontando o Google Calendar", mais
+entender se *"pode ser a segunda"* é a opção 1 ou 2, seria reescrever conta de
+data e leitura de texto — as duas coisas que um fluxograma faz pior.
+
+Então: **o n8n PERGUNTA, este serviço RESPONDE COM TEXTO, e o n8n manda.**
+
+```
+paciente -> n8n -> POST /api/agendamento/oferecer  -> texto das 3 opções
+         <- n8n <-
+
+paciente -> n8n -> POST /api/agendamento/confirmar -> "marcado" ou "não entendi"
+         <- n8n <-
+```
+
+`src/api-agendamento.js` **nunca fala com o WhatsApp**. É calculadora, não
+atendente. Isso é deliberado: dois sistemas mandando mensagem no mesmo número
+foi exatamente o que produziu o episódio das 21 mensagens.
+
+**O estado da oferta fica aqui**, não no n8n — é este serviço que precisa dele
+para entender a resposta do paciente. O n8n não guarda nada de agenda.
+
+| Rota | Corpo | Devolve |
+|---|---|---|
+| `POST /api/agendamento/oferecer` | `{phone, nome?, formato?}` | `{texto, temVagas}` |
+| `POST /api/agendamento/confirmar` | `{phone, resposta}` | `{texto, marcada, naoEntendi, falhou}` ou `{semOferta:true}` |
+
+Autenticação: cabeçalho `X-Agendamento-Token`, com o valor de
+`AGENDAMENTO_TOKEN`. Sem a variável os endpoints respondem 503 e dizem como
+resolver — nunca respondem "vou ver sua agenda" sem conseguir ler.
+
+**`semOferta: true` não é erro.** Quer dizer "esta mensagem não era sobre
+agendamento", e o n8n segue o fluxo normal dele. Sem essa distinção, toda
+mensagem do paciente viraria uma tentativa de confirmar horário.
+
+**A condição que o médico confirmou em 18/10/2026:** a agenda
+`drjesrryelsilva@gmail.com` é onde ele realmente marca, e o horário é segunda a
+sábado, 8h–12h e 14h–18h. **Isso é pré-requisito, não detalhe.** A conta é
+*horário configurado menos o que está ocupado no Google* — se as consultas
+dele não estiverem lançadas lá, o bot marca paciente em cima de paciente. Na
+checagem daquele dia a agenda estava vazia por 14 dias.
+
 ### O follow-up agora nasce da planilha (18/10/2026)
 
 Desde 18/10/2026 quem conversa com o paciente é o **fluxo do n8n**, não este

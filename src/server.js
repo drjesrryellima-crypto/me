@@ -5,6 +5,7 @@ const { receberMensagem } = require('./flow');
 const { iniciarAgendador } = require('./followup');
 const { iniciarVigiaDeHandoff } = require('./vigia-handoff');
 const { criarRouter, avisarSeDesprotegido } = require('./dashboard');
+const { criarRouterDeAgendamento, avisarSeSemSegredo } = require('./api-agendamento');
 const { exigirAssinatura, avisarSeSemAppSecret } = require('./assinatura');
 const { jaProcessado } = require('./dedupe');
 const { carregarCredenciais } = require('./google-credenciais');
@@ -23,6 +24,9 @@ app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // Painel de leads (/dashboard + /api/leads) — protegido por DASHBOARD_TOKEN
 app.use(criarRouter());
+// A ponte do n8n: ele pergunta os horários, este serviço calcula e devolve o
+// texto. Quem fala com o paciente continua sendo o n8n.
+app.use(criarRouterDeAgendamento());
 
 const PORT = process.env.PORT || 3000;
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
@@ -176,6 +180,7 @@ app.listen(PORT, () => {
   console.log(`Dashboard: http://localhost:${PORT}/dashboard?token=...`);
   checkGoogleSheetsSetup();
   avisarSeDesprotegido();
+  avisarSeSemSegredo();
   avisarSeSemAppSecret();
   if (!VERIFY_TOKEN) {
     console.warn(
