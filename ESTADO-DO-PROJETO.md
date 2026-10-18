@@ -551,6 +551,17 @@ serve — mas para de tratar o teste como paciente:
 | Follow-up D+3/D+5/D+7 | não envia (é mensagem paga) |
 | Alerta de handoff e de handoff parado | não dispara; só fica no log |
 | HANDOFF / DESQUALIFICADO | **não entra**. Recebe o mesmo texto do paciente e segue conversando |
+| Agenda do Google | **não cria evento**. O bot responde "marcado!" para o médico ver o texto, mas nada ocupa a agenda |
+
+**A quinta porta, fechada em 18/10/2026.** O médico testou o agendamento pelo
+7397 — que está na lista — e o bot criou uma consulta de verdade para as 8h do
+dia seguinte. As quatro primeiras portas (painel, planilha, follow-up pago,
+alerta) tinham sido fechadas em 15/10; esta passou batida porque o agendamento
+ainda não existia. A trava mora no `marcar()` do `google-agenda.js`, que é o
+único caminho de escrita na agenda — qualquer chamador novo herda a proteção.
+
+Marcar na agenda é a porta que mais importa das cinco: é a única cujo estrago
+aparece com uma pessoa esperando numa sala.
 
 **A armadilha do silêncio permanente, que custou um susto.** HANDOFF e
 DESQUALIFICADO deixam a automação calada de propósito — é para não atropelar o
