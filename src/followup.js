@@ -6,6 +6,7 @@ const { planejarFollowup } = require('./followup-plano');
 const { registrarEnvio } = require('./freio');
 const { registrarTemplate } = require('./orcamento');
 const { ehTeste } = require('./numeros-de-teste');
+const funil = require('./funil');
 
 // MVP simples: roda uma vez por dia (09:00) e verifica, para cada lead com
 // followupsAgendados = true, quantos dias se passaram desde que o catálogo
@@ -31,6 +32,15 @@ function diasDesde(dataIso) {
 }
 
 async function checarFollowups(agora = new Date()) {
+  // Quem conversa com o paciente é o n8n desde 18/10/2026, então os leads não
+  // nascem mais aqui: nascem na aba FUNIL da planilha. Esta linha traz de lá
+  // quem ainda não está na fila. Tudo depois dela é o motor de sempre — teto
+  // diário, freio por pessoa, PARAR, uma etapa por rodada.
+  //
+  // Falha de leitura não derruba a rodada (o sincronizar engole e loga): quem
+  // já está na fila continua sendo atendido pelo que está no disco.
+  await funil.sincronizar();
+
   const leads = readAll();
   for (const phone of Object.keys(leads)) {
     const lead = leads[phone];

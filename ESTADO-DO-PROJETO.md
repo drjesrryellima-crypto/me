@@ -399,6 +399,53 @@ dia.
 | Planilha CRM | `1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg` |
 | Service account do Google | `bot-whatsapp@project-30779c3d-8dbe-48db-927.iam.gserviceaccount.com` |
 
+### O follow-up agora nasce da planilha (18/10/2026)
+
+Desde 18/10/2026 quem conversa com o paciente é o **fluxo do n8n**, não este
+bot — decisão do médico. O webhook da Meta aponta para o n8n, e este serviço
+não recebe mais mensagem nenhuma.
+
+Isso deixou o follow-up sem fonte: os leads nasciam das conversas daqui. A
+correção foi trocar só a FONTE, não o motor.
+
+| Peça | Quem faz |
+|---|---|
+| Conversar e qualificar | n8n |
+| Registrar o lead | n8n, na aba **FUNIL** da planilha |
+| Mandar D+2/D+3/D+5/D+7 | este bot, lendo aquela aba |
+
+`src/funil.js` lê a aba, descobre quem merece follow-up e coloca na fila. Dali
+em diante é o motor de sempre (`followup-plano.js`): teto de mensagens pagas
+por dia, freio por pessoa, PARAR, e **uma etapa por rodada**.
+
+**Quem entra na fila:** `Estágio` = `Consulta Proposta` **e** `Escolha` vazia.
+Ou seja: viu os dois programas e não respondeu. Quem escolheu "Programa" já
+está com o médico; quem escolheu "Consulta" já recebeu as instruções. Mandar
+"ficou alguma dúvida?" para esses dois é ruído.
+
+**O relógio é a coluna `Data 1º Contato`**, porque o n8n não grava a data da
+qualificação. É aproximação: quem demora uma semana para responder as três
+perguntas tem o D+2 já vencido no dia em que qualifica. A tolerância de 3 dias
+do `followup-plano.js` então **pula** aquelas etapas em vez de disparar uma
+rajada — erra para menos, que é o lado certo de errar com mensagem paga.
+Se um dia isso incomodar, a correção é o n8n gravar a data ao preencher
+`Formato`.
+
+**Quatro armadilhas, todas com teste que cai se a trava sumir:**
+
+| Trava | O que acontece sem ela |
+|---|---|
+| Cabeçalho na linha **4**, não na 1 | as três primeiras linhas são título e legenda; lendo da 1, "CRM" vira nome de coluna e NENHUMA linha casa — follow-up mudo, sem erro |
+| Não reancorar `catalogoEnviadoEm` | a cada leitura diária o relógio reiniciaria, o D+2 venceria sempre "amanhã" e nada sairia nunca |
+| `PARADOS` vence a planilha | quem pediu PARAR continua listado lá; sem a trava, voltaria a receber mensagem paga — LGPD art. 18 |
+| Número de teste fora | o médico testando entraria na fila paga |
+
+A leitura falhar **não derruba a rodada**: o erro é engolido e quem já está na
+fila continua sendo atendido pelo que está no disco.
+
+**Nada sai enquanto os quatro templates não estiverem aprovados em
+Portuguese (BR).** Ver TEMPLATES-WHATSAPP.md.
+
 ### Como o bot abre uma conversa
 
 Desde 15/10/2026, a primeira fala do bot em qualquer conversa é:
