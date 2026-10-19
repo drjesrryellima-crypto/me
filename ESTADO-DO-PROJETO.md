@@ -467,6 +467,25 @@ segunda a sábado, das 8h às 18h" (sem intervalo de almoço) e mostra o endere�
 como se o presencial fosse qualquer dia. Os três horários que vêm logo depois
 mostram a realidade.
 
+**Quem pede para sair (19/10/2026).** Três nós logo depois de `É mensagem de
+paciente?`, antes da régua de crise:
+
+| Nó | Para quê |
+|---|---|
+| `Pediu para sair?` | só se a mensagem **inteira** for PARAR, PARE, SAIR, CANCELAR, DESCADASTRAR, REMOVER, STOP, "não quero (mais) receber (mais)". Comparação exata, como `src/descadastro.js`: "quero parar de tomar o remédio" não descadastra ninguém |
+| `Salvar descadastro` | `appendOrUpdate` na aba `FUNIL` com `Estágio = Descadastrado`. Tira a pessoa do follow-up (que só lê `Consulta Proposta`) e cria a linha se ela nunca tinha escrito. Com `onError: continueRegularOutput`, para a resposta sair mesmo se o Sheets falhar |
+| `Responder descadastro` | "Tudo certo. Não vou mais te mandar mensagens por aqui." Sem venda, sem pergunta |
+
+Antes disso, quem respondia SAIR caía como lead novo e recebia "qual é sua
+principal preocupação?" — o contrário do que os templates do Meta Ads prometem.
+O nó `HTTP Request` continua em paralelo e o `whatsapp-leads-disparo` marca
+"não contatar" do lado dele (frase solta como "pode parar de me mandar" ele
+pega por trecho; o n8n não, de propósito).
+
+**Efeito colateral a lembrar:** quem escreve SAIR fica com a linha
+`Descadastrado` e **não recebe mais resposta nenhuma** do funil, nem se voltar a
+escrever. Para testar o fluxo de novo com o mesmo número, apague a linha dele.
+
 ### O agendamento: o n8n pergunta, este serviço calcula (18/10/2026)
 
 **Presencial é só segunda de manhã.** Regra do médico em 18/10/2026:
@@ -1092,3 +1111,25 @@ Há 5 planilhas de CRM, 5 apps na Meta e 5 contas de WhatsApp Business na conta.
 Boa parte da confusão desta configuração veio disso — telas abrindo na conta
 errada, número sumindo de listas. Vale identificar o que é usado de verdade e
 arquivar o resto.
+
+## Disparo único para uma lista fechada (19/10/2026)
+
+Mora no repositório `whatsapp-leads-disparo` (Python), não aqui. Tela em
+`/admin/campanha` do serviço (ver o README de lá). Registro do que aconteceu na
+primeira vez, porque quase tudo foi descoberto no caminho:
+
+- **A lista já estava na fila diária.** Dos 376 do `importar_provedor_whatsapp.csv`,
+  323 já eram `leads` ativos do disparo diário, 2 já tinham conversado e só 51
+  eram novos. A tela pula quem já está na fila diária, para ninguém receber o
+  mesmo texto duas vezes. Decisão do médico: disparar só para os 51 e deixar os
+  323 no ritmo normal (50 por dia).
+- **O disparo diário falhou nos dias 17 e 18** (`132001`, "Template name does not
+  exist in the translation") porque os `lead_ads_*` não existiam na conta do
+  número que envia. Um número só envia template da conta a que pertence. Os
+  templates foram recriados na conta do 7075 em 19/10. Se um dia o erro 132001
+  voltar, o passo 2 da tela mostra o que a conta tem e se o número pertence a ela.
+- **Sem variável.** O `lead_ads_segundo_toque` aprovado não tem `{{1}}` e o
+  disparo não manda nome (`DISPARO_UNICO_PARAMS=0` é o padrão).
+- **O segredo da tela é a `FORWARD_SECRET` do serviço do disparo**, o mesmo que o
+  nó `HTTP Request` do n8n usa. Não trocar o valor sem trocar nos dois lugares:
+  o n8n deixaria de entregar as respostas.
