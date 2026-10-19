@@ -482,6 +482,27 @@ O nó `HTTP Request` continua em paralelo e o `whatsapp-leads-disparo` marca
 "não contatar" do lado dele (frase solta como "pode parar de me mandar" ele
 pega por trecho; o n8n não, de propósito).
 
+**Pergunta direta: preço e formação (19/10/2026).** Dois nós entre `Sinal de crise?`
+e `Buscar no FUNIL`:
+
+| Nó | Para quê |
+|---|---|
+| `Perguntou preço ou formação?` | "quanto custa", "qual o valor/custo/preço da consulta" **ou** "é psiquiatra/psicólogo/médico?" (esta só com `?`, para não pegar "tenho ansiedade e psicólogo me disse…") |
+| `Responder pergunta` | monta a resposta só com a parte perguntada; se vierem as duas, manda as duas |
+
+Depois de responder, **o fluxo segue a qualificação normal** (a pessoa recebe a
+resposta e, em seguida, a primeira pergunta). Aconteceu porque 3 pessoas
+perguntaram "psiquiatra ou psicólogo?" e "quanto custa?" ao responder o disparo
+único e o fluxo ignorou a pergunta.
+
+Os textos (aprovados pelo médico em 19/10/2026): *"A consulta com o Dr. Jesrryel
+custa R$ 350,00 e dura cerca de 1 hora. Aceitamos todas as formas de pagamento.
+O retorno não está incluso."* e *"O Dr. Jesrryel Lima é médico, com
+pós-graduação em psiquiatria. A consulta é um atendimento médico, com avaliação
+completa e plano de cuidado."* A segunda **não diz "especialista"** de propósito
+(o médico é pós-graduado, sem título de especialista registrado). Mudar a
+formação é mudar esse texto no nó, nunca afirmar mais do que isso.
+
 **Efeito colateral a lembrar:** quem escreve SAIR fica com a linha
 `Descadastrado` e **não recebe mais resposta nenhuma** do funil, nem se voltar a
 escrever. Para testar o fluxo de novo com o mesmo número, apague a linha dele.
