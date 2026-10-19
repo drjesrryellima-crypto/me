@@ -503,6 +503,23 @@ completa e plano de cuidado."* A segunda **não diz "especialista"** de propósi
 (o médico é pós-graduado, sem título de especialista registrado). Mudar a
 formação é mudar esse texto no nó, nunca afirmar mais do que isso.
 
+**Fonte "Meta Ads" e registro de crise (19/10/2026).**
+
+| Nó | Para quê |
+|---|---|
+| `Checar origem` | só para lead **novo**. Pergunta a `POST /admin/origem` do `whatsapp-leads-disparo` se o telefone está nas listas de Meta Ads (fila diária ou disparo único, nas duas grafias com/sem o 9). `Adicionar ao FUNIL` grava `Fonte = Meta Ads`; se a resposta vier vazia ou a chamada falhar (`onError: continueRegularOutput`), grava `WhatsApp` como antes |
+| `Registrar crise` | entre `Sinal de crise?` e `Responder crise`. `appendOrUpdate` no FUNIL com `Estágio = Atenção` e `Data do proximo checkpoint = hoje`. Se o Sheets falhar, a resposta de crise (CVV 188 / SAMU 192) sai mesmo assim |
+
+**Quem cai em `Atenção` sai do fluxo automático:** os nós de etapa só reagem a
+`Qualificação` e `Consulta Proposta`, então nenhuma mensagem seguinte recebe
+resposta do bot até alguém olhar a linha e mudar o Estágio. É de propósito para
+quem falou em se machucar, mas quem escreve de novo ("já estou bem") fica sem
+resposta. Antes dessa mudança, quem mandava sinal de crise não era gravado em
+lugar nenhum da planilha.
+
+O segredo do nó `Checar origem` é a `FORWARD_SECRET` do serviço do disparo, a
+mesma do nó `HTTP Request`. Trocou lá, troca nos dois.
+
 **Efeito colateral a lembrar:** quem escreve SAIR fica com a linha
 `Descadastrado` e **não recebe mais resposta nenhuma** do funil, nem se voltar a
 escrever. Para testar o fluxo de novo com o mesmo número, apague a linha dele.
