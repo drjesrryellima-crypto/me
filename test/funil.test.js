@@ -90,7 +90,7 @@ test('parseDataBR lê dd/mm/aaaa e recusa data impossível', () => {
   const d = parseDataBR('10/10/2026');
   assert.strictEqual(d.toISOString().slice(0, 10), '2026-10-10');
   // Meio-dia de Mossoró, para a contagem de dias não oscilar com o fuso.
-  assert.strictEqual(d.getUTCHours(), 15);
+  assert.strictEqual(d.getUTCHours(), 3); // meia-noite de Mossoró
   assert.strictEqual(parseDataBR('31/02/2026'), null);
   assert.strictEqual(parseDataBR('2026-10-10'), null);
   assert.strictEqual(parseDataBR(''), null);
