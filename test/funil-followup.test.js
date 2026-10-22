@@ -14,8 +14,10 @@ function planilha(...linhas) {
   return [['CRM'], [], ['legenda'], CABECALHO, ...linhas];
 }
 
+// A data como o n8n grava: o dia de MOSSORÓ (UTC-3), não o de UTC. Sem o
+// ajuste, das 21h à meia-noite de Mossoró o teste escreveria o dia seguinte.
 function diasAtras(n) {
-  const d = new Date(Date.now() - n * 86400000);
+  const d = new Date(Date.now() - 3 * 3600000 - n * 86400000);
   return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
 }
 

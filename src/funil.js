@@ -14,7 +14,12 @@ const { getLead, saveLead } = require('./state');
 const { PARADOS } = require('./followup-plano');
 const { ehTeste } = require('./numeros-de-teste');
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+// A aba FUNIL mora na planilha do CRM, que é a que o n8n preenche. NÃO é a de
+// GOOGLE_SHEET_ID: essa passou a ser a planilha "Leads" em 14/10/2026, e desde
+// então toda rodada das 9h procurava o FUNIL no lugar errado e não achava —
+// nenhum follow-up saía. As duas planilhas são independentes de propósito.
+const SHEET_ID =
+  process.env.GOOGLE_FUNIL_SHEET_ID || '1FN00DcZW17pruFRsyxDHWijtcSifQVj3PrSbRiHyMQg';
 
 // O gid da aba FUNIL, lido do workflow do n8n que escreve nela. gid não é
 // nome: a API de valores pede o NOME da aba, então resolvemos um pelo outro.
@@ -32,15 +37,17 @@ const ESTAGIO_QUALIFICADO = 'Consulta Proposta';
 
 const soDigitos = (v) => String(v ?? '').replace(/\D/g, '');
 
-// "18/10/2026" -> Date. Ancora ao MEIO-DIA de Mossoró (15:00 UTC) de
-// propósito: a planilha guarda só o dia, e ancorar à meia-noite deixaria a
-// conta de dias oscilando de 1 conforme o fuso de quem lê.
+// "18/10/2026" -> Date. Ancora à MEIA-NOITE de Mossoró (03:00 UTC): a planilha
+// guarda só o dia, e o follow-up conta dias inteiros (Math.floor) às 9h. Até
+// 22/10/2026 a âncora era o meio-dia (15:00 UTC), e às 9h do 3º dia tinham se
+// passado só 2,9 dias — todo D+3/D+5/D+7 saía um dia atrasado. Com a
+// meia-noite, qualquer hora do dia N de Mossoró conta exatamente N dias.
 function parseDataBR(texto) {
   const m = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(String(texto ?? ''));
   if (!m) return null;
   const [, dia, mes, ano] = m.map(Number);
   if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
-  const d = new Date(Date.UTC(ano, mes - 1, dia, 15, 0, 0));
+  const d = new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0));
   // Rejeita data impossível (31/02 vira 03/03 sozinho no Date).
   if (d.getUTCMonth() !== mes - 1 || d.getUTCDate() !== dia) return null;
   return d;
