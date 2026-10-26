@@ -1210,3 +1210,12 @@ Se não for, o log diz: `[funil-escrita] falha ao gravar no FUNIL (conta ...)`, 
 **O que o bot daqui responde diferente do n8n:** conversa com IA (usa `ANTHROPIC_API_KEY`) em vez do roteiro
 preocupação→cidade→formato. A coluna Cidade não é mais preenchida pelo bot. Quem estava no meio do
 roteiro do n8n recomeça a conversa (o estado daqui é outro).
+
+### A aba "Leads" deixou de ser espelhada (26/10/2026)
+
+`GOOGLE_SHEET_ID` aponta para a planilha `Leads` do **Meta Ads** (id, anúncio, formulário,
+e-mail, nome...) — a lista que o disparo usa, não um espelho do bot. O bot tentava escrever
+ali 13 colunas suas e só não escreveu porque a conta de serviço não era editora. **Não
+compartilhe essa planilha com a conta do bot como Editor**: as linhas dele se empilhariam no
+fim da lista. O espelho agora só liga com `GRAVAR_ABA_LEADS=true` (apontando para uma planilha
+própria). O CRM é a aba FUNIL.

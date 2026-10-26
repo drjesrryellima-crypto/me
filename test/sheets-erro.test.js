@@ -70,10 +70,29 @@ test('falha na planilha não derruba o atendimento', async () => {
   const linhas = [];
   const original = console.error;
   console.error = (...a) => linhas.push(a.join(' '));
+  // O espelho da aba "Leads" é opcional (desligado por padrão); aqui ele é o que se testa.
+  process.env.GRAVAR_ABA_LEADS = 'true';
+  try {
+    await sheets.gravarLeadNaPlanilha({ phone: '5584999990001', state: 'NOVO' });
+  } finally {
+    console.error = original;
+    delete process.env.GRAVAR_ABA_LEADS;
+  }
+  assert.match(linhas.join('\n'), /\[sheets\] falha ao gravar/);
+});
+
+// Com o espelho desligado (o padrão), a aba "Leads" — que na planilha real é a lista
+// do Meta Ads — nem é tocada: nenhuma tentativa, nenhum erro dela no log.
+test('por padrão o bot não escreve na aba Leads', async () => {
+  const sheets = carregar({ credenciais: CONTA });
+  const linhas = [];
+  const original = console.error;
+  console.error = (...a) => linhas.push(a.join(' '));
+  delete process.env.GRAVAR_ABA_LEADS;
   try {
     await sheets.gravarLeadNaPlanilha({ phone: '5584999990001', state: 'NOVO' });
   } finally {
     console.error = original;
   }
-  assert.match(linhas.join('\n'), /\[sheets\] falha ao gravar/);
+  assert.doesNotMatch(linhas.join('\n'), /\[sheets\] falha ao gravar/);
 });
