@@ -36,10 +36,11 @@ module.exports = {
   perguntaEscolha: () =>
     `Só pra eu te direcionar certinho: você prefere conhecer melhor os programas de acompanhamento, ou a consulta avulsa?`,
 
-  // Como funciona a consulta avulsa. Sem valor: ele só sai quando a pessoa pergunta
-  // (regra do consultório, ver assistente.js). Os fatos vêm de consultorio.js.
+  // Como funciona a consulta avulsa, com o valor: o Dr. Jesrryel pediu em 26/10/2026 que a
+  // explicação traga o preço (quem escolheu a consulta já decidiu ouvir). Isto vale SÓ aqui, na
+  // resposta à escolha; a IA continua só falando valor quando perguntam. Fatos: consultorio.js.
   explicarConsulta: (formato) => {
-    const { CONSULTA_AVULSA, PRESENCIAL, ONLINE } = require('./consultorio');
+    const { CONSULTA_AVULSA, PAGAMENTO, PRESENCIAL, ONLINE } = require('./consultorio');
     const onde = formato === 'Online' ? `💻 *Online:* ${ONLINE.escrito}`
       : formato === 'Presencial' ? `📍 *Presencial:* ${PRESENCIAL.escrito}`
         : `📍 *Presencial:* ${PRESENCIAL.escrito}\n💻 *Online:* ${ONLINE.escrito}`;
@@ -47,7 +48,7 @@ module.exports = {
       `Combinado! Funciona assim:\n\n` +
       `🩺 *Consulta:* dura cerca de ${CONSULTA_AVULSA.duracaoEscrita}. ${CONSULTA_AVULSA.oQueAcontece}\n\n` +
       `${onde}\n\n` +
-      `${CONSULTA_AVULSA.retornoEscrito}`
+      `💳 *Valor:* ${CONSULTA_AVULSA.valorEscrito},00. Pagamento: ${PAGAMENTO.escrito}. ${CONSULTA_AVULSA.retornoEscrito}`
     );
   },
 

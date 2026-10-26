@@ -1233,7 +1233,7 @@ consulta já recebe como funciona e os horários.
 4. `perguntaFormato` — "Você prefere consulta presencial ou online?" (guardado como `Online`/`Presencial`, que é o que a agenda usa para filtrar os horários)
 5. `catalogo` — resumo dos dois programas + aviso de que existe a **consulta avulsa** + "programas ou consulta avulsa?"
 6. a escolha (estado `CATALOGO_ENVIADO` **sem** `lead.escolha`):
-   - **consulta avulsa** → `escolha: Consulta`; manda `explicarConsulta` (como funciona, no formato escolhido, **sem valor**) e em seguida **três horários**; o número escolhido marca no Google Agenda. Sem agenda ou sem vaga, vai para o médico com alerta;
+   - **consulta avulsa** → `escolha: Consulta`; manda `explicarConsulta` (como funciona, no formato escolhido, **com o valor** R$ 350, pagamento e retorno à parte, a pedido do médico) e em seguida **três horários**; o número escolhido marca no Google Agenda. Sem agenda ou sem vaga, vai para o médico com alerta;
    - **programas / quer saber mais** → `escolha: Programa`, HANDOFF e **alerta no Telegram** (`QUER SABER MAIS DOS PROGRAMAS`);
    - **não ficou claro** → repete só a pergunta final.
 

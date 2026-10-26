@@ -148,11 +148,12 @@ test('quer consulta: recebe os horários na hora (sem esperar o médico), sem av
   state.saveLead(FONE, { state: 'CATALOGO_ENVIADO', formato: 'Online' });
   await flow.handleIncomingMessage({ from: FONE, text: 'prefiro a consulta avulsa' });
 
-  // 1ª mensagem: como funciona (sem valor, que só sai quando perguntam); 2ª: os horários.
+  // 1ª mensagem: como funciona (com o valor, a pedido do médico); 2ª: os horários.
   assert.match(enviados[0], /Consulta:\* dura cerca de 1 hora/);
   assert.match(enviados[0], /Online:\*/);
   assert.doesNotMatch(enviados[0], /Presencial:\*/, 'mostrou o presencial a quem escolheu online');
-  assert.doesNotMatch(enviados[0], /R\$/);
+  assert.match(enviados[0], /Valor:\* R\$ 350,00/);
+  assert.match(enviados[0], /não está incluído/);
   assert.match(enviados[1], /\*1\.\*/);
   assert.match(enviados[1], /\*3\.\*/);
   const lead = state.getLead(FONE);
