@@ -92,3 +92,23 @@ test('o texto de boas-vindas não cumprimenta nem se apresenta sozinho', () => {
   assert.ok(!/assistente|time do dr/i.test(texto), texto);
   assert.ok(!texto.includes('💙'), texto);
 });
+
+// Pedido do Dr. Jesrryel em 26/10/2026: "Boa noite, <nome do paciente>". O nome vem do perfil do
+// WhatsApp, que é texto livre; só entra quando parece um nome de pessoa.
+test('a abertura chama a pessoa pelo primeiro nome', () => {
+  const { abertura } = require('../src/abertura');
+  const noite = new Date('2026-10-26T23:00:00Z'); // 20h em Mossoró
+  assert.match(abertura(noite, 'ana maria silva'), /^Boa noite, Ana! Aqui é do consultório/);
+  assert.match(abertura(noite, 'MARIA DO CARMO'), /^Boa noite, Maria! /);
+  assert.match(abertura(noite, 'Jean-Luc'), /^Boa noite, Jean-luc! /);
+});
+
+test('nome que não parece nome de pessoa fica de fora (melhor sem nome do que com nome errado)', () => {
+  const { abertura, primeiroNome } = require('../src/abertura');
+  const noite = new Date('2026-10-26T23:00:00Z');
+  for (const ruim of ['', undefined, null, '😀', '𝐹𝓁𝒶𝓋𝒾𝒶', '123', 'A', 'x'.repeat(30), '...']) {
+    assert.equal(primeiroNome(ruim), '', JSON.stringify(ruim));
+    assert.match(abertura(noite, ruim), /^Boa noite! Aqui é do consultório/);
+  }
+  assert.equal(primeiroNome('•Maryy•'), 'Maryy');
+});

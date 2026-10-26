@@ -126,3 +126,13 @@ test('nada mudou, nada é gravado (não gasta cota do Google à toa)', () => {
   const v = planilha(linha({ Telefone: '558497096643', Nome: 'Maria', Fonte: 'WhatsApp', Estágio: 'Qualificação', 'Data 1º Contato': '26/10/2026' }));
   assert.strictEqual(planejarGravacao(v, lead()).tipo, 'nada');
 });
+
+test('a cidade que a pessoa informou vai para a coluna Cidade', () => {
+  const p = planejarGravacao(planilha(), lead({ cidade: 'Mossoró' }));
+  const idx = indiceDoCabecalho(planilha());
+  assert.strictEqual(p.linha[idx['Cidade']], 'Mossoró');
+});
+
+test('o estado da cidade conta como Qualificação no FUNIL', () => {
+  assert.strictEqual(camposDoLead(lead({ state: 'AGUARDANDO_CIDADE' }))['Estágio'], 'Qualificação');
+});

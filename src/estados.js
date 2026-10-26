@@ -3,7 +3,7 @@
 // que está olhando — se cada um tiver a sua cópia da lista, uma hora elas
 // divergem e o mesmo lead aparece com dois nomes diferentes em cada tela.
 
-const ETAPA_QUALIFICACAO = ['NOVO', 'AGUARDANDO_MOTIVO', 'AGUARDANDO_HISTORICO', 'AGUARDANDO_FORMATO'];
+const ETAPA_QUALIFICACAO = ['NOVO', 'AGUARDANDO_MOTIVO', 'AGUARDANDO_HISTORICO', 'AGUARDANDO_CIDADE', 'AGUARDANDO_FORMATO'];
 
 const ETAPA_FOLLOWUP = [
   'FOLLOWUP_D2',
@@ -17,6 +17,7 @@ const ROTULO_ESTADO = {
   NOVO: 'Novo',
   AGUARDANDO_MOTIVO: 'Aguardando motivo',
   AGUARDANDO_HISTORICO: 'Aguardando histórico',
+  AGUARDANDO_CIDADE: 'Aguardando cidade',
   AGUARDANDO_FORMATO: 'Aguardando formato',
   CATALOGO_ENVIADO: 'Catálogo enviado',
   FOLLOWUP_D2: 'Follow-up D+2',
@@ -42,6 +43,7 @@ const ESTAGIO_CRM = {
   NOVO: 'Novo',
   AGUARDANDO_MOTIVO: 'Qualificação',
   AGUARDANDO_HISTORICO: 'Qualificação',
+  AGUARDANDO_CIDADE: 'Qualificação',
   AGUARDANDO_FORMATO: 'Qualificação',
   CATALOGO_ENVIADO: 'Nutrição',
   FOLLOWUP_D2: 'Nutrição',

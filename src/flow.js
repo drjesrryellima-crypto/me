@@ -173,6 +173,17 @@ async function encaminharParaHumano(from, { texto, priority, notas, state = 'HAN
   await gravarLeadNaPlanilha(getLead(from));
 }
 
+// O formato precisa ser exatamente 'Online' ou 'Presencial': é o que a agenda usa para filtrar
+// os horários e o que a confirmação escreve. Texto que não deixa claro fica como a pessoa disse.
+function normalizarFormato(texto) {
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const online = /online|on-line|on line|tele|virtual|video|meet|zoom|distancia|remot/.test(t);
+  const presencial = /presencial|pessoalmente|consultorio|mossoro|ai\b|ai no/.test(t);
+  if (online && !presencial) return 'Online';
+  if (presencial && !online) return 'Presencial';
+  return String(texto || '').trim();
+}
+
 function classificar(historico) {
   const texto = (historico || '').toLowerCase();
   if (texto.includes('primeira vez') || texto.includes('nunca fiz')) return 'Recomeço';
@@ -380,6 +391,55 @@ async function handleIncomingMessage({ from, text, nome }) {
 // manda o texto fixo de messages.js em vez do texto da IA: são justamente os
 // casos em que a palavra exata importa (acolhimento de risco, desqualificação)
 // ou em que um deslize custa caro (falar preço numa resposta de compra).
+// ---- O roteiro fixo --------------------------------------------------------
+//
+// Ordem básica, igual para todo mundo: motivo -> histórico -> formato ->
+// programas -> "programas ou consulta?". A IA não conduz: ela só responde
+// dúvida (valor, endereço, horário...) e o roteiro é retomado logo depois,
+// no mesmo ponto. Pedido do Dr. Jesrryel em 26/10/2026.
+//
+// CATALOGO_ENVIADO sem `escolha` é a última etapa: a pessoa já viu os
+// programas e falta dizer se quer conhecê-los ou marcar consulta.
+// AGUARDANDO_HISTORICO já não é perguntado (a etapa saiu do roteiro em 26/10/2026), mas quem estava
+// nele continua sendo atendido.
+const ESTADOS_DO_ROTEIRO = ['NOVO', 'AGUARDANDO_MOTIVO', 'AGUARDANDO_HISTORICO', 'AGUARDANDO_CIDADE', 'AGUARDANDO_FORMATO'];
+
+function emRoteiro(lead) {
+  if (!lead) return false;
+  if (ESTADOS_DO_ROTEIRO.includes(lead.state)) return true;
+  return lead.state === 'CATALOGO_ENVIADO' && !lead.escolha;
+}
+
+// A pergunta que o roteiro está esperando, e o estado em que a conversa fica
+// depois de fazê-la (quem ainda estava em NOVO passa a esperar o motivo).
+function perguntaPendente(state) {
+  switch (state) {
+    case 'NOVO':
+    case 'AGUARDANDO_MOTIVO':
+      return { texto: messages.perguntaMotivo(), estado: 'AGUARDANDO_MOTIVO' };
+    case 'AGUARDANDO_HISTORICO':
+      return { texto: messages.perguntaHistorico(), estado: 'AGUARDANDO_HISTORICO' };
+    case 'AGUARDANDO_CIDADE':
+      return { texto: messages.perguntaCidade(), estado: 'AGUARDANDO_CIDADE' };
+    case 'AGUARDANDO_FORMATO':
+      return { texto: messages.perguntaFormato(), estado: 'AGUARDANDO_FORMATO' };
+    default:
+      return { texto: messages.perguntaEscolha(), estado: state };
+  }
+}
+
+// "Programas ou consulta?" lido da resposta da pessoa. null = não ficou claro.
+// Quem cita os dois (ou o nome de um programa) quer saber dos programas: é o
+// caminho que chega ao médico, então na dúvida ele ganha.
+function interpretarEscolha(texto) {
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const programa = /programa|recomeco|constancia|acompanhamento|mais informac|saber mais|conhecer/.test(t);
+  const consulta = /consulta|avulsa|agendar|marcar|horario|agenda/.test(t);
+  if (programa) return 'programa';
+  if (consulta) return 'consulta';
+  return null;
+}
+
 async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
   if (ia.intencao === 'risco') {
     await responderRisco(from, textoOriginal);
@@ -447,6 +507,20 @@ async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
     return;
   }
 
+  // Dentro do roteiro: dúvida -> a IA responde e o roteiro é retomado no mesmo
+  // ponto; resposta ao roteiro -> o próximo passo fixo, sem a IA improvisar.
+  if (emRoteiro(lead)) {
+    if (ia.fezPergunta) {
+      const { texto, estado } = perguntaPendente(lead.state);
+      await responderLead(from, `${ia.resposta.trim()}\n\n${texto}`);
+      saveLead(from, { state: estado });
+      await gravarLeadNaPlanilha(getLead(from));
+      return;
+    }
+    await fluxoDeterministico(from, lead, textoOriginal);
+    return;
+  }
+
   // conversando — usa o texto da própria assistente.
   await responderLead(from, ia.resposta);
 
@@ -481,26 +555,86 @@ async function fluxoDeterministico(from, lead, textoOriginal) {
       break;
 
     case 'AGUARDANDO_MOTIVO':
-      await responderLead(from, messages.perguntaHistorico());
-      saveLead(from, { motivo: textoOriginal, state: 'AGUARDANDO_HISTORICO' });
+      await responderLead(from, messages.perguntaCidade());
+      saveLead(from, { motivo: textoOriginal, state: 'AGUARDANDO_CIDADE' });
       break;
 
     case 'AGUARDANDO_HISTORICO':
+      // Etapa que saiu do roteiro: só atende quem já estava nela.
+      await responderLead(from, messages.perguntaCidade());
+      saveLead(from, { historico: textoOriginal, state: 'AGUARDANDO_CIDADE' });
+      break;
+
+    case 'AGUARDANDO_CIDADE':
       await responderLead(from, messages.perguntaFormato());
-      saveLead(from, { historico: textoOriginal, state: 'AGUARDANDO_FORMATO' });
+      saveLead(from, { cidade: textoOriginal, state: 'AGUARDANDO_FORMATO' });
       break;
 
     case 'AGUARDANDO_FORMATO': {
       const catalogo = messages.catalogo(lead.nome);
       await responderLead(from, catalogo);
       saveLead(from, {
-        formato: textoOriginal,
+        formato: normalizarFormato(textoOriginal),
         classificacao: classificar(lead.historico),
         state: 'CATALOGO_ENVIADO',
         catalogoEnviadoEm: new Date().toISOString(),
         followupsAgendados: true,
         followupsEnviados: [],
       });
+      break;
+    }
+
+    case 'CATALOGO_ENVIADO': {
+      if (lead.escolha) {
+        // Já escolheu antes: qualquer nova resposta vai para o médico.
+        await encaminharParaHumano(from, {
+          texto: messages.handoffCompra(),
+          priority: 'RETOMADA DE CONTATO',
+          notas: `Lead respondeu durante ${lead.state}`,
+          ultimaMensagem: textoOriginal,
+        });
+        return;
+      }
+      const escolha = interpretarEscolha(textoOriginal);
+      if (escolha === 'programa') {
+        saveLead(from, { escolha: 'Programa' });
+        await encaminharParaHumano(from, {
+          texto: messages.handoffProgramas(),
+          priority: 'QUER SABER MAIS DOS PROGRAMAS',
+          notas: 'Quer saber mais sobre os programas de acompanhamento',
+          ultimaMensagem: textoOriginal,
+        });
+        return;
+      }
+      if (escolha === 'consulta') {
+        saveLead(from, { escolha: 'Consulta' });
+        if (!agendamento.disponivel()) {
+          await encaminharParaHumano(from, {
+            texto: messages.handoffAgendamento(),
+            priority: 'QUER MARCAR CONSULTA',
+            notas: 'Quer marcar e o agendamento automático está desligado',
+            ultimaMensagem: textoOriginal,
+          });
+          return;
+        }
+        // Primeiro como funciona, depois os horários (duas mensagens: a segunda é a que pede o número).
+        await responderLead(from, messages.explicarConsulta(getLead(from).formato));
+        const oferta = await agendamento.oferecer(getLead(from));
+        await responderLead(from, oferta.texto);
+        if (oferta.campos) saveLead(from, oferta.campos);
+        if (oferta.semVagas) {
+          console.warn(`[agenda] ${from}: sem horário para oferecer — ${oferta.motivo}`);
+          await encaminharParaHumano(from, {
+            texto: '', priority: 'SEM HORÁRIO PARA OFERECER',
+            notas: `Quis marcar e não havia vaga: ${oferta.motivo}`,
+            ultimaMensagem: textoOriginal,
+          });
+          return;
+        }
+        break;
+      }
+      // Não ficou claro: repete só a última pergunta.
+      await responderLead(from, messages.perguntaEscolha());
       break;
     }
 
@@ -552,4 +686,7 @@ module.exports = {
   handleIncomingMessage,
   aplicarRespostaDaIA,
   fluxoDeterministico,
+  interpretarEscolha,
+  emRoteiro,
+  normalizarFormato,
 };

@@ -29,10 +29,24 @@ function saudacao(agora = new Date()) {
   return 'Boa noite';
 }
 
+// O nome vem do perfil do WhatsApp, que é texto livre: "•Maryy•", "Happy Fest
+// Buffet", "𝐹𝓁𝒶𝓋𝒾𝒶", só emoji. Só vale se a primeira palavra for um nome de
+// verdade (letras comuns, 2 a 20); na dúvida, cumprimenta sem nome — errar o
+// nome é pior do que não usá-lo.
+function primeiroNome(nome) {
+  const palavra = String(nome || '').trim().split(/\s+/)[0] || '';
+  const limpa = palavra.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:-[A-Za-zÀ-ÖØ-öø-ÿ]+)?$/.test(limpa)) return '';
+  if (limpa.length < 2 || limpa.length > 20) return '';
+  return limpa.charAt(0).toUpperCase() + limpa.slice(1).toLowerCase();
+}
+
 // O 💙 fica aqui, e por isso saiu das outras aberturas: um por conversa.
-function abertura(agora = new Date()) {
+// "Boa noite, Ana!" quando o nome é confiável; "Boa noite!" quando não.
+function abertura(agora = new Date(), nome = '') {
+  const n = primeiroNome(nome);
   return (
-    `${saudacao(agora)}! Aqui é do consultório do Dr. Jesrryel Lima — ` +
+    `${saudacao(agora)}${n ? `, ${n}` : ''}! Aqui é do consultório do Dr. Jesrryel Lima — ` +
     `eu sou a assistente dele 💙`
   );
 }
@@ -47,7 +61,7 @@ function ehPrimeiraFala(lead) {
 
 function comAbertura(texto, lead, agora = new Date()) {
   if (!ehPrimeiraFala(lead)) return texto;
-  return `${abertura(agora)}\n\n${texto}`;
+  return `${abertura(agora, lead && lead.nome)}\n\n${texto}`;
 }
 
-module.exports = { abertura, saudacao, ehPrimeiraFala, comAbertura, horaEmMossoro };
+module.exports = { abertura, primeiroNome, saudacao, ehPrimeiraFala, comAbertura, horaEmMossoro };
