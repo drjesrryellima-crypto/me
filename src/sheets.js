@@ -172,6 +172,8 @@ async function gravarLeadNaPlanilha(lead) {
   // CRM oficial primeiro (aba FUNIL, onde o médico olha); a aba "Leads" é espelho técnico.
   await gravarNoFunil(lead);
 
+  if (!espelhoLigado()) return;
+
   try {
     await appendLeadRow(lead);
   } catch (err) {
@@ -179,8 +181,18 @@ async function gravarLeadNaPlanilha(lead) {
   }
 }
 
+// A aba "Leads" de GOOGLE_SHEET_ID é, na planilha real, a LISTA DE LEADS DO META ADS
+// (id, anúncio, formulário, e-mail...), não um espelho do bot. Escrever 13 colunas do
+// bot ali empilharia linhas estranhas no fim da lista que o disparo usa. O CRM é a
+// aba FUNIL (funil-escrita.js); este espelho só liga se alguém pedir de propósito,
+// apontando GOOGLE_SHEET_ID para uma planilha própria dele.
+function espelhoLigado() {
+  return String(process.env.GRAVAR_ABA_LEADS || '').trim().toLowerCase() === 'true';
+}
+
 module.exports = {
   appendLeadRow,
+  espelhoLigado,
   gravarLeadNaPlanilha,
   explicarErroDoSheets,
   soDigitos,
