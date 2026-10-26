@@ -193,8 +193,29 @@ function classificar(historico) {
   return 'Recomeço'; // default conservador — revisar critério com o médico
 }
 
+// Só para os números de teste do médico: a palavra "reiniciar" apaga a conversa e o roteiro
+// recomeça do zero, com a saudação de novo. O botão Reativar do painel só serve para lead PARADO
+// (handoff etc.); quem já chegou ao fim do roteiro não tinha como testar de novo. Paciente de
+// verdade nunca passa por aqui: `ehTeste` é a lista NUMEROS_DE_TESTE.
+const CAMPOS_DO_ROTEIRO = {
+  state: 'NOVO', motivo: '', historico: '', cidade: '', formato: '', classificacao: '', escolha: null,
+  vagasOferecidas: null, consultaEm: null, consultaLink: '', notas: '', historicoConversa: [],
+  followupsAgendados: false, followupsEnviados: [], catalogoEnviadoEm: null,
+  handoffEm: null, atendidoEm: null, realertasEnviados: 0, ultimoRealertaEm: null,
+};
+
+function pediuReinicio(from, texto) {
+  if (!ehTeste(from)) return false;
+  return String(texto || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === 'reiniciar';
+}
+
 async function handleIncomingMessage({ from, text, nome }) {
-  const textoOriginal = text || '';
+  let textoOriginal = text || '';
+  if (pediuReinicio(from, textoOriginal)) {
+    saveLead(from, CAMPOS_DO_ROTEIRO);
+    console.log(`[flow] ${from} é número de teste e pediu "reiniciar" — roteiro recomeçando do zero.`);
+    textoOriginal = 'oi';
+  }
   let lead = createLeadIfMissing(from);
   if (nome && !lead.nome) lead = saveLead(from, { nome });
   // Fonte do lead (coluna do FUNIL): pergunta uma vez só, na primeira mensagem.
@@ -689,4 +710,5 @@ module.exports = {
   interpretarEscolha,
   emRoteiro,
   normalizarFormato,
+  pediuReinicio,
 };
