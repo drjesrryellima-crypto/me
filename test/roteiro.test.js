@@ -225,3 +225,35 @@ test('a IA que pede os programas (compra) também avisa o médico', async () => 
   assert.equal(state.getLead(FONE).state, 'HANDOFF');
   assert.equal(avisos.length, 1);
 });
+
+// "reiniciar" recomeça o roteiro, mas SÓ para números de teste (NUMEROS_DE_TESTE): o botão Reativar do
+// painel só serve para lead parado, e quem chegou ao fim do roteiro não tinha como testar de novo.
+test('número de teste: "reiniciar" apaga a conversa e o roteiro recomeça com a saudação', async () => {
+  process.env.NUMEROS_DE_TESTE = FONE;
+  try {
+    const { flow, state, messages, enviados } = montar();
+    state.createLeadIfMissing(FONE);
+    state.saveLead(FONE, {
+      state: 'CATALOGO_ENVIADO', escolha: 'Consulta', cidade: 'Mossoró', motivo: 'x', nome: 'Ana',
+      historicoConversa: [{ role: 'assistant', content: 'oi' }], vagasOferecidas: { horarios: ['2026-11-02T11:00:00Z'], em: new Date().toISOString() },
+    });
+    await flow.handleIncomingMessage({ from: FONE, text: ' Reiniciar ', nome: 'Ana' });
+    const lead = state.getLead(FONE);
+    assert.equal(lead.state, 'AGUARDANDO_MOTIVO');
+    assert.equal(lead.escolha, null);
+    assert.equal(lead.cidade, '');
+    assert.equal(lead.vagasOferecidas, null);
+    assert.match(enviados[0], /^(Bom dia|Boa tarde|Boa noite), Ana! /);
+    assert.ok(enviados[0].includes(messages.boasVindas()));
+  } finally { delete process.env.NUMEROS_DE_TESTE; }
+});
+
+test('paciente de verdade que escreve "reiniciar" NÃO tem a conversa apagada', async () => {
+  delete process.env.NUMEROS_DE_TESTE;
+  const { flow, state } = montar();
+  state.createLeadIfMissing(FONE);
+  state.saveLead(FONE, { state: 'CATALOGO_ENVIADO', escolha: 'Consulta', cidade: 'Mossoró' });
+  assert.equal(flow.pediuReinicio(FONE, 'reiniciar'), false);
+  await flow.handleIncomingMessage({ from: FONE, text: 'reiniciar' });
+  assert.equal(state.getLead(FONE).cidade, 'Mossoró');
+});

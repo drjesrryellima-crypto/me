@@ -1254,3 +1254,7 @@ detalhe é do médico.
 **Onde mexer:** texto de uma etapa → `messages.js`; regra de "programa ou consulta" →
 `interpretarEscolha` em `flow.js`; o que a IA responde → `SYSTEM_PROMPT_MOLDE` em `assistente.js`.
 Testes: `test/roteiro.test.js`.
+
+**Testar o roteiro várias vezes:** num número de `NUMEROS_DE_TESTE`, a mensagem **"reiniciar"** apaga a
+conversa e o roteiro recomeça do zero, com a saudação (o botão Reativar do painel só serve para lead
+parado: HANDOFF, DESQUALIFICADO...). Para paciente de verdade a palavra não faz nada.
