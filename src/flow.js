@@ -380,6 +380,51 @@ async function handleIncomingMessage({ from, text, nome }) {
 // manda o texto fixo de messages.js em vez do texto da IA: são justamente os
 // casos em que a palavra exata importa (acolhimento de risco, desqualificação)
 // ou em que um deslize custa caro (falar preço numa resposta de compra).
+// ---- O roteiro fixo --------------------------------------------------------
+//
+// Ordem básica, igual para todo mundo: motivo -> histórico -> formato ->
+// programas -> "programas ou consulta?". A IA não conduz: ela só responde
+// dúvida (valor, endereço, horário...) e o roteiro é retomado logo depois,
+// no mesmo ponto. Pedido do Dr. Jesrryel em 26/10/2026.
+//
+// CATALOGO_ENVIADO sem `escolha` é a última etapa: a pessoa já viu os
+// programas e falta dizer se quer conhecê-los ou marcar consulta.
+const ESTADOS_DO_ROTEIRO = ['NOVO', 'AGUARDANDO_MOTIVO', 'AGUARDANDO_HISTORICO', 'AGUARDANDO_FORMATO'];
+
+function emRoteiro(lead) {
+  if (!lead) return false;
+  if (ESTADOS_DO_ROTEIRO.includes(lead.state)) return true;
+  return lead.state === 'CATALOGO_ENVIADO' && !lead.escolha;
+}
+
+// A pergunta que o roteiro está esperando, e o estado em que a conversa fica
+// depois de fazê-la (quem ainda estava em NOVO passa a esperar o motivo).
+function perguntaPendente(state) {
+  switch (state) {
+    case 'NOVO':
+    case 'AGUARDANDO_MOTIVO':
+      return { texto: messages.perguntaMotivo(), estado: 'AGUARDANDO_MOTIVO' };
+    case 'AGUARDANDO_HISTORICO':
+      return { texto: messages.perguntaHistorico(), estado: 'AGUARDANDO_HISTORICO' };
+    case 'AGUARDANDO_FORMATO':
+      return { texto: messages.perguntaFormato(), estado: 'AGUARDANDO_FORMATO' };
+    default:
+      return { texto: messages.perguntaEscolha(), estado: state };
+  }
+}
+
+// "Programas ou consulta?" lido da resposta da pessoa. null = não ficou claro.
+// Quem cita os dois (ou o nome de um programa) quer saber dos programas: é o
+// caminho que chega ao médico, então na dúvida ele ganha.
+function interpretarEscolha(texto) {
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const programa = /programa|recomeco|constancia|acompanhamento|mais informac|saber mais|conhecer/.test(t);
+  const consulta = /consulta|agendar|marcar|horario|agenda/.test(t);
+  if (programa) return 'programa';
+  if (consulta) return 'consulta';
+  return null;
+}
+
 async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
   if (ia.intencao === 'risco') {
     await responderRisco(from, textoOriginal);
@@ -447,6 +492,20 @@ async function aplicarRespostaDaIA(from, lead, ia, textoOriginal) {
     return;
   }
 
+  // Dentro do roteiro: dúvida -> a IA responde e o roteiro é retomado no mesmo
+  // ponto; resposta ao roteiro -> o próximo passo fixo, sem a IA improvisar.
+  if (emRoteiro(lead)) {
+    if (ia.fezPergunta) {
+      const { texto, estado } = perguntaPendente(lead.state);
+      await responderLead(from, `${ia.resposta.trim()}\n\n${texto}`);
+      saveLead(from, { state: estado });
+      await gravarLeadNaPlanilha(getLead(from));
+      return;
+    }
+    await fluxoDeterministico(from, lead, textoOriginal);
+    return;
+  }
+
   // conversando — usa o texto da própria assistente.
   await responderLead(from, ia.resposta);
 
@@ -504,6 +563,58 @@ async function fluxoDeterministico(from, lead, textoOriginal) {
       break;
     }
 
+    case 'CATALOGO_ENVIADO': {
+      if (lead.escolha) {
+        // Já escolheu antes: qualquer nova resposta vai para o médico.
+        await encaminharParaHumano(from, {
+          texto: messages.handoffCompra(),
+          priority: 'RETOMADA DE CONTATO',
+          notas: `Lead respondeu durante ${lead.state}`,
+          ultimaMensagem: textoOriginal,
+        });
+        return;
+      }
+      const escolha = interpretarEscolha(textoOriginal);
+      if (escolha === 'programa') {
+        saveLead(from, { escolha: 'Programa' });
+        await encaminharParaHumano(from, {
+          texto: messages.handoffProgramas(),
+          priority: 'QUER SABER MAIS DOS PROGRAMAS',
+          notas: 'Quer saber mais sobre os programas de acompanhamento',
+          ultimaMensagem: textoOriginal,
+        });
+        return;
+      }
+      if (escolha === 'consulta') {
+        saveLead(from, { escolha: 'Consulta' });
+        if (!agendamento.disponivel()) {
+          await encaminharParaHumano(from, {
+            texto: messages.handoffAgendamento(),
+            priority: 'QUER MARCAR CONSULTA',
+            notas: 'Quer marcar e o agendamento automático está desligado',
+            ultimaMensagem: textoOriginal,
+          });
+          return;
+        }
+        const oferta = await agendamento.oferecer(getLead(from));
+        await responderLead(from, oferta.texto);
+        if (oferta.campos) saveLead(from, oferta.campos);
+        if (oferta.semVagas) {
+          console.warn(`[agenda] ${from}: sem horário para oferecer — ${oferta.motivo}`);
+          await encaminharParaHumano(from, {
+            texto: '', priority: 'SEM HORÁRIO PARA OFERECER',
+            notas: `Quis marcar e não havia vaga: ${oferta.motivo}`,
+            ultimaMensagem: textoOriginal,
+          });
+          return;
+        }
+        break;
+      }
+      // Não ficou claro: repete só a última pergunta.
+      await responderLead(from, messages.perguntaEscolha());
+      break;
+    }
+
     default:
       // Estados de follow-up ou reengajamento: qualquer resposta do lead aqui
       // é sinal de interesse renovado — melhor mandar pro humano.
@@ -552,4 +663,6 @@ module.exports = {
   handleIncomingMessage,
   aplicarRespostaDaIA,
   fluxoDeterministico,
+  interpretarEscolha,
+  emRoteiro,
 };

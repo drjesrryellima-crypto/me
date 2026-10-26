@@ -12,6 +12,10 @@ module.exports = {
     `Vou te ajudar a entender qual caminho faz mais sentido pra você.\n\n` +
     `Me conta com suas palavras: o que te trouxe até aqui hoje?`,
 
+  // A mesma pergunta, sem a frase de abertura. Usada quando a pessoa fez uma
+  // dúvida antes de respondê-la e o roteiro precisa ser retomado.
+  perguntaMotivo: () => `Me conta com suas palavras: o que te trouxe até aqui hoje?`,
+
   perguntaHistorico: () =>
     `Entendi. E me diz uma coisa: você já buscou algum tipo de acompanhamento em saúde mental antes, ou seria a primeira vez dando esse passo?`,
 
@@ -24,7 +28,16 @@ module.exports = {
     `🔹 Recomeço — pra quem está começando agora e precisa de um cuidado mais próximo logo de cara, com psiquiatria e psicologia caminhando juntas até você se sentir mais estável.\n` +
     `🔹 Constância — pra quem já encontrou seu equilíbrio e quer manter esse cuidado vivo, com uma frequência mais espaçada, sem perder o acompanhamento.\n\n` +
     `Os dois contam com uma equipe pensada pra te olhar por inteiro — psiquiatria, psicologia, nutrição e educação física, quando fizer sentido pro seu momento — no formato que for melhor pra você: aqui no consultório ou online.\n\n` +
-    `Quer que eu te explique qual dos dois combina mais com o que você está vivendo agora?`,
+    `Você tem interesse em conhecer melhor os programas de acompanhamento, ou prefere agendar uma consulta?`,
+
+  // Última etapa do roteiro, repetida quando a resposta não deixou claro o caminho.
+  perguntaEscolha: () =>
+    `Só pra eu te direcionar certinho: você prefere conhecer melhor os programas de acompanhamento, ou agendar uma consulta?`,
+
+  // Quem quer saber mais dos programas é atendido pelo Dr. Jesrryel (o alerta
+  // chega no celular dele). O texto promete só o que o sistema cumpre: avisar.
+  handoffProgramas: () =>
+    `Que bom! Os detalhes dos programas quem explica é o próprio Dr. Jesrryel, com calma e olhando o seu caso. Já estou avisando ele — ele te chama por aqui mesmo 💙`,
 
   desqualificacaoGentil: () =>
     `Fico feliz que você tenha vindo até aqui, e quero ser honesto com você: pelo que você me contou, acho que você vai ser melhor cuidado por outro tipo de profissional/serviço. Se quiser, posso te ajudar a pensar no próximo passo, tá bem?`,

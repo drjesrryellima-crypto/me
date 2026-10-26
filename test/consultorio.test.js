@@ -45,8 +45,19 @@ test('todo fato do consultório chega ao prompt da assistente', () => {
   }
 });
 
-test('o prompt manda apresentar os programas mesmo a quem perguntou da avulsa', () => {
-  assert.match(systemPrompt(), /mesmo para quem só perguntou da consulta avulsa/i);
+// Desde 26/10/2026 o roteiro fixo apresenta os programas; a IA não os explica e
+// quem quer saber mais é passado ao médico (intenção `compra`, que gera o alerta).
+test('o prompt manda passar ao médico quem quer saber mais dos programas', () => {
+  const prompt = systemPrompt();
+  assert.match(prompt, /não explica os programas por conta própria/i);
+  assert.match(prompt, /quer saber mais ou pediu detalhes do Recomeço ou do Constância/i);
+  assert.doesNotMatch(prompt, /mesmo para quem só perguntou da consulta avulsa/i);
+});
+
+test('o prompt descreve o roteiro fixo e o campo fezPergunta', () => {
+  const prompt = systemPrompt();
+  assert.match(prompt, /roteiro da conversa é FIXO/i);
+  assert.match(prompt, /fezPergunta/);
 });
 
 // Os fatos que vieram da automação antiga do n8n (desligada em 14/10/2026).

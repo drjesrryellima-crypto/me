@@ -1219,3 +1219,33 @@ ali 13 colunas suas e só não escreveu porque a conta de serviço não era edit
 compartilhe essa planilha com a conta do bot como Editor**: as linhas dele se empilhariam no
 fim da lista. O espelho agora só liga com `GRAVAR_ABA_LEADS=true` (apontando para uma planilha
 própria). O CRM é a aba FUNIL.
+
+## O roteiro fixo (26/10/2026)
+
+Pedido do Dr. Jesrryel: o bot segue uma ordem básica, igual para todo mundo, e só sai dela se
+o paciente fizer uma pergunta. Quem quer saber mais dos programas chega ao médico; quem quer
+consulta já recebe os horários.
+
+**A ordem** (textos fixos em `src/messages.js`):
+1. `boasVindas` — "o que te trouxe até aqui?" (a abertura com saudação é colada por `abertura.js`)
+2. `perguntaHistorico` — já buscou acompanhamento antes?
+3. `perguntaFormato` — presencial em Mossoró ou online?
+4. `catalogo` — resumo dos dois programas + **"conhecer melhor os programas, ou agendar uma consulta?"**
+5. a escolha (estado `CATALOGO_ENVIADO` **sem** `lead.escolha`):
+   - **programas / quer saber mais** → `escolha: Programa`, HANDOFF e **alerta no Telegram** (`QUER SABER MAIS DOS PROGRAMAS`);
+   - **consulta** → `escolha: Consulta`, `agendamento.oferecer` manda três horários; o número escolhido marca no Google Agenda (`agendamento.confirmar`, já existente). Sem agenda ou sem vaga, vai para o médico com alerta;
+   - **não ficou claro** → repete só a pergunta final.
+
+**Dúvida no meio:** a IA (`assistente.js`) devolve `fezPergunta`. Se `true`, a resposta dela
+(≤ 3 linhas, sem terminar em pergunta) sai seguida da pergunta pendente do roteiro, **sem avançar
+o estado**. Se `false`, o texto fixo do próximo passo sai e a IA não improvisa.
+Sem chave da IA (ou se ela falhar) o roteiro anda sozinho pelo `fluxoDeterministico`.
+
+**O que continua furando o roteiro:** crise (188/192), PARAR/SAIR, escolha de horário, pedido de
+valor dos programas, "quero marcar", fora de escopo e a intenção `compra` da IA (que agora inclui
+"quero saber mais dos programas"). A IA **não explica os programas**: o resumo é o do roteiro e o
+detalhe é do médico.
+
+**Onde mexer:** texto de uma etapa → `messages.js`; regra de "programa ou consulta" →
+`interpretarEscolha` em `flow.js`; o que a IA responde → `SYSTEM_PROMPT_MOLDE` em `assistente.js`.
+Testes: `test/roteiro.test.js`.

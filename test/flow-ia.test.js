@@ -8,7 +8,11 @@ const limpar = () => fs.rmSync(DATA, { recursive: true, force: true });
 
 const { aplicarRespostaDaIA } = require('../src/flow');
 const { saudacao } = require('../src/abertura');
-const { getLead, createLeadIfMissing } = require('../src/state');
+const { getLead, createLeadIfMissing, saveLead } = require('../src/state');
+
+// Dentro do roteiro fixo (NOVO, AGUARDANDO_*, catálogo sem escolha) quem conduz é o sistema;
+// a conversa livre da IA, que estes testes cobrem, vale fora dele (follow-up, reengajamento).
+const livre = (phone) => { createLeadIfMissing(phone); saveLead(phone, { state: 'REENGAJAMENTO_MENSAL' }); };
 
 // Sem WHATSAPP_TOKEN o envio falha e é engolido pelo enviar() do flow.js —
 // que é justamente o comportamento desejado: falha de envio nunca pode
@@ -68,7 +72,7 @@ test('fora de escopo desqualifica', async () => {
 test('campo vazio da IA não apaga o que o lead já tinha contado', async () => {
   limpar();
   const phone = '5584944444444';
-  createLeadIfMissing(phone);
+  livre(phone);
   await aplicarRespostaDaIA(phone, getLead(phone), respostaIA({ motivo: 'ansiedade no trabalho' }), 'ansiedade');
   assert.strictEqual(getLead(phone).motivo, 'ansiedade no trabalho');
 
@@ -83,7 +87,7 @@ test('campo vazio da IA não apaga o que o lead já tinha contado', async () => 
 test('qualificação completa agenda os follow-ups uma única vez', async () => {
   limpar();
   const phone = '5584955555555';
-  createLeadIfMissing(phone);
+  livre(phone);
 
   const completa = respostaIA({
     motivo: 'ansiedade',
@@ -111,7 +115,7 @@ test('qualificação completa agenda os follow-ups uma única vez', async () => 
 test('a conversa fica registrada no histórico pra virar contexto da próxima mensagem', async () => {
   limpar();
   const phone = '5584966666666';
-  createLeadIfMissing(phone);
+  livre(phone);
 
   await aplicarRespostaDaIA(phone, getLead(phone), respostaIA({ resposta: 'Oi! Como posso ajudar?' }), 'oi');
 
