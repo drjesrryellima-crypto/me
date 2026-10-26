@@ -15,6 +15,7 @@ const { descreverStatus } = require('./status-entrega');
 const { conferirNumeroQueRecebeu } = require('./destinatario');
 const telegram = require('./telegram');
 const assistente = require('./assistente');
+const disparo = require('./disparo');
 
 const app = express();
 // verify guarda o corpo CRU antes do parse. A assinatura da Meta é calculada
@@ -94,6 +95,8 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
       // NÓS mandamos chegou de fato, e quando falha traz o motivo. Descartar
       // isso calado deixava "a Meta aceitou o envio" e "a pessoa recebeu"
       // indistinguíveis.
+      // O disparo precisa dos status (entregue/lido/falhou) da campanha dele.
+      if (value && (value.statuses || []).length) disparo.repassar(req.body);
       for (const linha of descreverStatus(value)) {
         if (linha.includes('FALHOU')) console.error(`[webhook:${INSTANCIA}] ${linha}`);
         else console.log(`[webhook:${INSTANCIA}] ${linha}`);
@@ -108,6 +111,10 @@ app.post('/webhook', exigirAssinatura, async (req, res) => {
       console.log(`[webhook:${INSTANCIA}] evento ${message.id} já processado — reenvio da Meta, ignorado.`);
       return;
     }
+
+    // Quem respondeu sai da fila do disparo e PARAR é honrado lá. Depois do
+    // dedupe de propósito: reenvio da Meta não pode gravar a resposta duas vezes.
+    disparo.repassar(req.body);
 
     // Antes de processar: a mensagem chegou no número de onde o bot responde?
     // Se não, a resposta é aceita pela Meta e recusada na entrega, com um

@@ -1171,3 +1171,42 @@ primeira vez, porque quase tudo foi descoberto no caminho:
 - **O segredo da tela é a `FORWARD_SECRET` do serviço do disparo**, o mesmo que o
   nó `HTTP Request` do n8n usa. Não trocar o valor sem trocar nos dois lugares:
   o n8n deixaria de entregar as respostas.
+
+## O bot volta a atender no lugar do n8n (26/10/2026)
+
+**Por que:** o plano do n8n estourou (cada "entregue/lido" da Meta era uma execução paga,
+~1000 a cada 3 dias) e o bot parou de responder. Para não depender dele, este serviço
+(`me`) volta a ser quem conversa com o paciente — com as colunas do CRM que o n8n usava.
+
+**O que muda neste código (nada disso liga sozinho):**
+
+| Peça | O que faz |
+|---|---|
+| `src/funil-escrita.js` | grava cada lead na aba **FUNIL** (gid 729736578, cabeçalho na linha 4). Acha as colunas pelo NOME, mexe só nas células que o bot é dono, não apaga nada, não troca estágio que só pessoa confirma (Consulta Agendada / Convertido / Perdido). |
+| `src/disparo.js` | repassa respostas e status ao serviço `whatsapp-leads-disparo` (tira da fila quem respondeu, honra PARAR, registra a entrega da campanha) e pergunta a **Fonte** ("Meta Ads" ou "WhatsApp"). |
+| `flow.js` | na 1ª mensagem do lead, grava `lead.fonte`. |
+| `sheets.js` | `gravarLeadNaPlanilha` grava no FUNIL primeiro e depois na aba "Leads" (espelho técnico). |
+
+**Estágios no FUNIL:** Qualificação (conversando) → Consulta Proposta (viu os programas;
+é o que o follow-up procura) · crise → **Atenção** · PARAR → **Descadastrado** ·
+desqualificado → Desqualificado.
+
+**Variáveis a criar neste serviço na Railway:**
+- `FORWARD_SECRET` = `${{whatsapp-leads-disparo.FORWARD_SECRET}}` (referência: copia o valor do outro serviço sem passar por conversa).
+- `DISPARO_URL` (opcional; padrão `https://whatsapp-leads-disparo-production.up.railway.app`).
+
+**A conta de serviço do Google precisa ser EDITORA da planilha do CRM** (o follow-up só lia).
+Se não for, o log diz: `[funil-escrita] falha ao gravar no FUNIL (conta ...)`, com o e-mail a compartilhar.
+
+**Virada (ordem importa):**
+1. Variáveis acima + conferir no log que o `me` subiu sem `[funil-escrita]` de erro.
+2. Meta (WhatsApp → Configuração → Webhook): URL `https://<este-serviço>/webhook`, token = `WHATSAPP_VERIFY_TOKEN`, campo `messages`.
+3. **Desativar o workflow do n8n** (`My workflow 6`). Se ficar ativo, a credencial do WhatsApp Trigger
+   re-registra o webhook da Meta no n8n a cada republicação/reinício e desfaz o passo 2.
+4. Mandar uma mensagem de teste e conferir: resposta no WhatsApp + linha no FUNIL (Fonte, Estágio) + log `[disparo]` sem erro.
+
+**Volta (se algo der errado):** reativar o workflow do n8n (ele reescreve o webhook da Meta para si).
+
+**O que o bot daqui responde diferente do n8n:** conversa com IA (usa `ANTHROPIC_API_KEY`) em vez do roteiro
+preocupação→cidade→formato. A coluna Cidade não é mais preenchida pelo bot. Quem estava no meio do
+roteiro do n8n recomeça a conversa (o estado daqui é outro).
