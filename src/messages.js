@@ -16,23 +16,40 @@ module.exports = {
   // dúvida antes de respondê-la e o roteiro precisa ser retomado.
   perguntaMotivo: () => `Me conta com suas palavras: o que te trouxe até aqui hoje?`,
 
+  // Etapa 3 do roteiro (pedido do Dr. Jesrryel em 26/10/2026): de onde a pessoa fala.
+  perguntaCidade: () => `Entendi. E você fala de onde?`,
+
   perguntaHistorico: () =>
     `Entendi. E me diz uma coisa: você já buscou algum tipo de acompanhamento em saúde mental antes, ou seria a primeira vez dando esse passo?`,
 
-  perguntaFormato: () =>
-    `Perfeito, obrigado por compartilhar isso comigo.\n` +
-    `Só mais uma coisa: você prefere se cuidar presencialmente aqui em Mossoró, ou prefere que seja tudo online, do jeito que for mais confortável pra sua rotina?`,
+  perguntaFormato: () => `Obrigada. Você prefere consulta presencial ou online?`,
 
   catalogo: (nome) =>
     `${nome ? nome + ', ' : ''}baseado no que você me contou, acho que faz todo sentido eu te apresentar os dois formatos que temos aqui:\n\n` +
     `🔹 Recomeço — pra quem está começando agora e precisa de um cuidado mais próximo logo de cara, com psiquiatria e psicologia caminhando juntas até você se sentir mais estável.\n` +
     `🔹 Constância — pra quem já encontrou seu equilíbrio e quer manter esse cuidado vivo, com uma frequência mais espaçada, sem perder o acompanhamento.\n\n` +
     `Os dois contam com uma equipe pensada pra te olhar por inteiro — psiquiatria, psicologia, nutrição e educação física, quando fizer sentido pro seu momento — no formato que for melhor pra você: aqui no consultório ou online.\n\n` +
-    `Você tem interesse em conhecer melhor os programas de acompanhamento, ou prefere agendar uma consulta?`,
+    `Além dos programas, também existe a *consulta avulsa*, se você preferir começar por ela.\n\n` +
+    `Você prefere conhecer melhor os programas de acompanhamento, ou a consulta avulsa?`,
 
   // Última etapa do roteiro, repetida quando a resposta não deixou claro o caminho.
   perguntaEscolha: () =>
-    `Só pra eu te direcionar certinho: você prefere conhecer melhor os programas de acompanhamento, ou agendar uma consulta?`,
+    `Só pra eu te direcionar certinho: você prefere conhecer melhor os programas de acompanhamento, ou a consulta avulsa?`,
+
+  // Como funciona a consulta avulsa. Sem valor: ele só sai quando a pessoa pergunta
+  // (regra do consultório, ver assistente.js). Os fatos vêm de consultorio.js.
+  explicarConsulta: (formato) => {
+    const { CONSULTA_AVULSA, PRESENCIAL, ONLINE } = require('./consultorio');
+    const onde = formato === 'Online' ? `💻 *Online:* ${ONLINE.escrito}`
+      : formato === 'Presencial' ? `📍 *Presencial:* ${PRESENCIAL.escrito}`
+        : `📍 *Presencial:* ${PRESENCIAL.escrito}\n💻 *Online:* ${ONLINE.escrito}`;
+    return (
+      `Combinado! Funciona assim:\n\n` +
+      `🩺 *Consulta:* dura cerca de ${CONSULTA_AVULSA.duracaoEscrita}. ${CONSULTA_AVULSA.oQueAcontece}\n\n` +
+      `${onde}\n\n` +
+      `${CONSULTA_AVULSA.retornoEscrito}`
+    );
+  },
 
   // Quem quer saber mais dos programas é atendido pelo Dr. Jesrryel (o alerta
   // chega no celular dele). O texto promete só o que o sistema cumpre: avisar.

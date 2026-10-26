@@ -1224,17 +1224,22 @@ própria). O CRM é a aba FUNIL.
 
 Pedido do Dr. Jesrryel: o bot segue uma ordem básica, igual para todo mundo, e só sai dela se
 o paciente fizer uma pergunta. Quem quer saber mais dos programas chega ao médico; quem quer
-consulta já recebe os horários.
+consulta já recebe como funciona e os horários.
 
 **A ordem** (textos fixos em `src/messages.js`):
-1. `boasVindas` — "o que te trouxe até aqui?" (a abertura com saudação é colada por `abertura.js`)
-2. `perguntaHistorico` — já buscou acompanhamento antes?
-3. `perguntaFormato` — presencial em Mossoró ou online?
-4. `catalogo` — resumo dos dois programas + **"conhecer melhor os programas, ou agendar uma consulta?"**
-5. a escolha (estado `CATALOGO_ENVIADO` **sem** `lead.escolha`):
+1. **Saudação com o nome:** "Boa noite, Ana! Aqui é do consultório do Dr. Jesrryel Lima — eu sou a assistente dele 💙" (`abertura.js`; o nome é o primeiro nome do perfil do WhatsApp, e só entra se parecer nome de pessoa).
+2. `boasVindas` — "o que te trouxe até aqui hoje?"
+3. `perguntaCidade` — "E você fala de onde?" (vai para a coluna **Cidade** do FUNIL)
+4. `perguntaFormato` — "Você prefere consulta presencial ou online?" (guardado como `Online`/`Presencial`, que é o que a agenda usa para filtrar os horários)
+5. `catalogo` — resumo dos dois programas + aviso de que existe a **consulta avulsa** + "programas ou consulta avulsa?"
+6. a escolha (estado `CATALOGO_ENVIADO` **sem** `lead.escolha`):
+   - **consulta avulsa** → `escolha: Consulta`; manda `explicarConsulta` (como funciona, no formato escolhido, **sem valor**) e em seguida **três horários**; o número escolhido marca no Google Agenda. Sem agenda ou sem vaga, vai para o médico com alerta;
    - **programas / quer saber mais** → `escolha: Programa`, HANDOFF e **alerta no Telegram** (`QUER SABER MAIS DOS PROGRAMAS`);
-   - **consulta** → `escolha: Consulta`, `agendamento.oferecer` manda três horários; o número escolhido marca no Google Agenda (`agendamento.confirmar`, já existente). Sem agenda ou sem vaga, vai para o médico com alerta;
    - **não ficou claro** → repete só a pergunta final.
+
+A pergunta de **histórico** ("já buscou acompanhamento antes?") saiu do roteiro. Quem já estava
+nela (`AGUARDANDO_HISTORICO`) continua e segue para a cidade. Sem o histórico, a classificação
+Recomeço/Constância cai no padrão (Recomeço).
 
 **Dúvida no meio:** a IA (`assistente.js`) devolve `fezPergunta`. Se `true`, a resposta dela
 (≤ 3 linhas, sem terminar em pergunta) sai seguida da pergunta pendente do roteiro, **sem avançar

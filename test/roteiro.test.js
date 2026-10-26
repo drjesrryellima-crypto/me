@@ -45,42 +45,68 @@ const ia = (over = {}) => ({
   formato: '', classificacao: '', qualificacaoCompleta: false, fezPergunta: false, ...over,
 });
 
-test('a ordem básica: motivo -> histórico -> formato -> programas com a pergunta final', async () => {
+test('a ordem: saudação com nome -> motivo -> cidade -> formato -> programas + consulta avulsa', async () => {
   const { flow, state, messages, enviados } = montar();
-  await flow.handleIncomingMessage({ from: FONE, text: 'oi', nome: 'Ana' });
+  await flow.handleIncomingMessage({ from: FONE, text: 'oi', nome: 'Ana Souza' });
   assert.equal(state.getLead(FONE).state, 'AGUARDANDO_MOTIVO');
-  assert.ok(enviados[0].includes(messages.perguntaMotivo()));
+  assert.match(enviados[0], /^(Bom dia|Boa tarde|Boa noite), Ana! Aqui é do consultório/);
+  assert.ok(enviados[0].includes(messages.boasVindas()));
 
   await flow.handleIncomingMessage({ from: FONE, text: 'ansiedade no trabalho' });
-  assert.equal(state.getLead(FONE).state, 'AGUARDANDO_HISTORICO');
+  assert.equal(state.getLead(FONE).state, 'AGUARDANDO_CIDADE');
   assert.equal(state.getLead(FONE).motivo, 'ansiedade no trabalho');
-  assert.ok(enviados[1].includes(messages.perguntaHistorico()));
+  assert.equal(enviados[1], messages.perguntaCidade());
 
-  await flow.handleIncomingMessage({ from: FONE, text: 'primeira vez' });
+  await flow.handleIncomingMessage({ from: FONE, text: 'Mossoró' });
   assert.equal(state.getLead(FONE).state, 'AGUARDANDO_FORMATO');
-  assert.ok(enviados[2].includes(messages.perguntaFormato()));
+  assert.equal(state.getLead(FONE).cidade, 'Mossoró');
+  assert.equal(enviados[2], messages.perguntaFormato());
+  assert.match(enviados[2], /consulta presencial ou online\?/);
 
-  await flow.handleIncomingMessage({ from: FONE, text: 'online' });
+  await flow.handleIncomingMessage({ from: FONE, text: 'prefiro online' });
   const lead = state.getLead(FONE);
   assert.equal(lead.state, 'CATALOGO_ENVIADO');
+  assert.equal(lead.formato, 'Online');
   assert.ok(lead.followupsAgendados);
   assert.match(enviados[3], /Recomeço/);
-  assert.match(enviados[3], /conhecer melhor os programas de acompanhamento, ou prefere agendar uma consulta\?$/);
+  assert.match(enviados[3], /Constância/);
+  assert.match(enviados[3], /consulta avulsa/);
+  assert.match(enviados[3], /programas de acompanhamento, ou a consulta avulsa\?$/);
+});
+
+test('quem já estava na etapa de histórico (que saiu do roteiro) segue para a cidade', async () => {
+  const { flow, state, messages, enviados } = montar();
+  state.createLeadIfMissing(FONE);
+  state.saveLead(FONE, { state: 'AGUARDANDO_HISTORICO', motivo: 'insônia' });
+  await flow.handleIncomingMessage({ from: FONE, text: 'primeira vez' });
+  assert.equal(state.getLead(FONE).state, 'AGUARDANDO_CIDADE');
+  assert.equal(state.getLead(FONE).historico, 'primeira vez');
+  assert.ok(enviados[0].endsWith(messages.perguntaCidade()));
+});
+
+test('normalizarFormato: só Online/Presencial exatos; o resto fica como a pessoa disse', () => {
+  const { flow } = montar();
+  assert.equal(flow.normalizarFormato('online'), 'Online');
+  assert.equal(flow.normalizarFormato('Prefiro por vídeo'), 'Online');
+  assert.equal(flow.normalizarFormato('presencial mesmo'), 'Presencial');
+  assert.equal(flow.normalizarFormato('no consultório'), 'Presencial');
+  assert.equal(flow.normalizarFormato('tanto faz'), 'tanto faz');
+  assert.equal(flow.normalizarFormato('presencial ou online'), 'presencial ou online');
 });
 
 test('dúvida no meio do roteiro: a IA responde e o roteiro volta ao MESMO ponto', async () => {
   const { flow, state, messages, enviados } = montar();
   state.createLeadIfMissing(FONE);
-  state.saveLead(FONE, { state: 'AGUARDANDO_HISTORICO', motivo: 'insônia' });
+  state.saveLead(FONE, { state: 'AGUARDANDO_CIDADE', motivo: 'insônia' });
 
   await flow.aplicarRespostaDaIA(FONE, state.getLead(FONE),
     ia({ fezPergunta: true, resposta: 'Atendemos de segunda a sábado.' }), 'que horas vocês atendem?');
 
   const lead = state.getLead(FONE);
-  assert.equal(lead.state, 'AGUARDANDO_HISTORICO', 'a dúvida avançou o roteiro');
-  assert.equal(lead.historico, '', 'a pergunta virou resposta do histórico');
-  assert.ok(enviados[0].startsWith('Atendemos de segunda a sábado.') || enviados[0].includes('Atendemos de segunda a sábado.'));
-  assert.ok(enviados[0].endsWith(messages.perguntaHistorico()));
+  assert.equal(lead.state, 'AGUARDANDO_CIDADE', 'a dúvida avançou o roteiro');
+  assert.ok(!lead.cidade, 'a pergunta virou resposta da cidade');
+  assert.ok(enviados[0].includes('Atendemos de segunda a sábado.'));
+  assert.ok(enviados[0].endsWith(messages.perguntaCidade()));
 });
 
 test('dúvida logo na primeira mensagem: responde e já faz a primeira pergunta do roteiro', async () => {
@@ -98,7 +124,7 @@ test('sem pergunta, a IA não improvisa: segue o texto fixo do roteiro', async (
   state.saveLead(FONE, { state: 'AGUARDANDO_MOTIVO' });
   await flow.aplicarRespostaDaIA(FONE, state.getLead(FONE),
     ia({ resposta: 'Texto livre da IA que NÃO deve sair' }), 'tristeza');
-  assert.ok(enviados[0].includes(messages.perguntaHistorico()));
+  assert.ok(enviados[0].includes(messages.perguntaCidade()));
   assert.ok(!enviados[0].includes('Texto livre da IA'));
 });
 
@@ -120,10 +146,15 @@ test('quer consulta: recebe os horários na hora (sem esperar o médico), sem av
   const { flow, state, enviados, avisos } = montar();
   state.createLeadIfMissing(FONE);
   state.saveLead(FONE, { state: 'CATALOGO_ENVIADO', formato: 'Online' });
-  await flow.handleIncomingMessage({ from: FONE, text: 'prefiro agendar uma consulta' });
+  await flow.handleIncomingMessage({ from: FONE, text: 'prefiro a consulta avulsa' });
 
-  assert.match(enviados[0], /\*1\.\*/);
-  assert.match(enviados[0], /\*3\.\*/);
+  // 1ª mensagem: como funciona (sem valor, que só sai quando perguntam); 2ª: os horários.
+  assert.match(enviados[0], /Consulta:\* dura cerca de 1 hora/);
+  assert.match(enviados[0], /Online:\*/);
+  assert.doesNotMatch(enviados[0], /Presencial:\*/, 'mostrou o presencial a quem escolheu online');
+  assert.doesNotMatch(enviados[0], /R\$/);
+  assert.match(enviados[1], /\*1\.\*/);
+  assert.match(enviados[1], /\*3\.\*/);
   const lead = state.getLead(FONE);
   assert.equal(lead.escolha, 'Consulta');
   assert.equal(lead.vagasOferecidas.horarios.length, 3);
@@ -166,6 +197,7 @@ test('interpretarEscolha: programa ganha quando cita os dois; sem pista é null'
   assert.equal(flow.interpretarEscolha('Recomeço'), 'programa');
   assert.equal(flow.interpretarEscolha('quero saber mais'), 'programa');
   assert.equal(flow.interpretarEscolha('agendar consulta'), 'consulta');
+  assert.equal(flow.interpretarEscolha('a avulsa'), 'consulta');
   assert.equal(flow.interpretarEscolha('Consulta, por favor'), 'consulta');
   assert.equal(flow.interpretarEscolha('consulta ou programa?'), 'programa');
   assert.equal(flow.interpretarEscolha('não sei'), null);

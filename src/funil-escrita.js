@@ -37,6 +37,7 @@ const ESTAGIO_FUNIL = {
   NOVO: 'Qualificação',
   AGUARDANDO_MOTIVO: 'Qualificação',
   AGUARDANDO_HISTORICO: 'Qualificação',
+  AGUARDANDO_CIDADE: 'Qualificação',
   AGUARDANDO_FORMATO: 'Qualificação',
   CATALOGO_ENVIADO: 'Consulta Proposta',
   FOLLOWUP_D2: 'Consulta Proposta',
@@ -113,6 +114,7 @@ function camposDoLead(lead, { fonte } = {}) {
     Estágio: estagio,
     'Data 1º Contato': dataBR(lead.createdAt),
     Notas: lead.notas || '',
+    Cidade: lead.cidade || '',
     Formato: lead.formato || '',
     ...(risco ? { 'Data do proximo checkpoint': dataBR() } : {}),
   };

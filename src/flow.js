@@ -173,6 +173,17 @@ async function encaminharParaHumano(from, { texto, priority, notas, state = 'HAN
   await gravarLeadNaPlanilha(getLead(from));
 }
 
+// O formato precisa ser exatamente 'Online' ou 'Presencial': é o que a agenda usa para filtrar
+// os horários e o que a confirmação escreve. Texto que não deixa claro fica como a pessoa disse.
+function normalizarFormato(texto) {
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const online = /online|on-line|on line|tele|virtual|video|meet|zoom|distancia|remot/.test(t);
+  const presencial = /presencial|pessoalmente|consultorio|mossoro|ai\b|ai no/.test(t);
+  if (online && !presencial) return 'Online';
+  if (presencial && !online) return 'Presencial';
+  return String(texto || '').trim();
+}
+
 function classificar(historico) {
   const texto = (historico || '').toLowerCase();
   if (texto.includes('primeira vez') || texto.includes('nunca fiz')) return 'Recomeço';
@@ -389,7 +400,9 @@ async function handleIncomingMessage({ from, text, nome }) {
 //
 // CATALOGO_ENVIADO sem `escolha` é a última etapa: a pessoa já viu os
 // programas e falta dizer se quer conhecê-los ou marcar consulta.
-const ESTADOS_DO_ROTEIRO = ['NOVO', 'AGUARDANDO_MOTIVO', 'AGUARDANDO_HISTORICO', 'AGUARDANDO_FORMATO'];
+// AGUARDANDO_HISTORICO já não é perguntado (a etapa saiu do roteiro em 26/10/2026), mas quem estava
+// nele continua sendo atendido.
+const ESTADOS_DO_ROTEIRO = ['NOVO', 'AGUARDANDO_MOTIVO', 'AGUARDANDO_HISTORICO', 'AGUARDANDO_CIDADE', 'AGUARDANDO_FORMATO'];
 
 function emRoteiro(lead) {
   if (!lead) return false;
@@ -406,6 +419,8 @@ function perguntaPendente(state) {
       return { texto: messages.perguntaMotivo(), estado: 'AGUARDANDO_MOTIVO' };
     case 'AGUARDANDO_HISTORICO':
       return { texto: messages.perguntaHistorico(), estado: 'AGUARDANDO_HISTORICO' };
+    case 'AGUARDANDO_CIDADE':
+      return { texto: messages.perguntaCidade(), estado: 'AGUARDANDO_CIDADE' };
     case 'AGUARDANDO_FORMATO':
       return { texto: messages.perguntaFormato(), estado: 'AGUARDANDO_FORMATO' };
     default:
@@ -419,7 +434,7 @@ function perguntaPendente(state) {
 function interpretarEscolha(texto) {
   const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const programa = /programa|recomeco|constancia|acompanhamento|mais informac|saber mais|conhecer/.test(t);
-  const consulta = /consulta|agendar|marcar|horario|agenda/.test(t);
+  const consulta = /consulta|avulsa|agendar|marcar|horario|agenda/.test(t);
   if (programa) return 'programa';
   if (consulta) return 'consulta';
   return null;
@@ -540,20 +555,26 @@ async function fluxoDeterministico(from, lead, textoOriginal) {
       break;
 
     case 'AGUARDANDO_MOTIVO':
-      await responderLead(from, messages.perguntaHistorico());
-      saveLead(from, { motivo: textoOriginal, state: 'AGUARDANDO_HISTORICO' });
+      await responderLead(from, messages.perguntaCidade());
+      saveLead(from, { motivo: textoOriginal, state: 'AGUARDANDO_CIDADE' });
       break;
 
     case 'AGUARDANDO_HISTORICO':
+      // Etapa que saiu do roteiro: só atende quem já estava nela.
+      await responderLead(from, messages.perguntaCidade());
+      saveLead(from, { historico: textoOriginal, state: 'AGUARDANDO_CIDADE' });
+      break;
+
+    case 'AGUARDANDO_CIDADE':
       await responderLead(from, messages.perguntaFormato());
-      saveLead(from, { historico: textoOriginal, state: 'AGUARDANDO_FORMATO' });
+      saveLead(from, { cidade: textoOriginal, state: 'AGUARDANDO_FORMATO' });
       break;
 
     case 'AGUARDANDO_FORMATO': {
       const catalogo = messages.catalogo(lead.nome);
       await responderLead(from, catalogo);
       saveLead(from, {
-        formato: textoOriginal,
+        formato: normalizarFormato(textoOriginal),
         classificacao: classificar(lead.historico),
         state: 'CATALOGO_ENVIADO',
         catalogoEnviadoEm: new Date().toISOString(),
@@ -596,6 +617,8 @@ async function fluxoDeterministico(from, lead, textoOriginal) {
           });
           return;
         }
+        // Primeiro como funciona, depois os horários (duas mensagens: a segunda é a que pede o número).
+        await responderLead(from, messages.explicarConsulta(getLead(from).formato));
         const oferta = await agendamento.oferecer(getLead(from));
         await responderLead(from, oferta.texto);
         if (oferta.campos) saveLead(from, oferta.campos);
@@ -665,4 +688,5 @@ module.exports = {
   fluxoDeterministico,
   interpretarEscolha,
   emRoteiro,
+  normalizarFormato,
 };
