@@ -17,6 +17,7 @@ const { MARCA_RISCO } = require('./estados');
 const agendamento = require('./agendamento');
 const { comAbertura } = require('./abertura');
 const { ehTeste } = require('./numeros-de-teste');
+const { fonteDoTelefone } = require('./disparo');
 
 // Envio "seguro": se a chamada à API do WhatsApp falhar (token inválido,
 // instabilidade, etc.), isso NUNCA deve impedir o estado do lead de ser
@@ -185,6 +186,8 @@ async function handleIncomingMessage({ from, text, nome }) {
   const textoOriginal = text || '';
   let lead = createLeadIfMissing(from);
   if (nome && !lead.nome) lead = saveLead(from, { nome });
+  // Fonte do lead (coluna do FUNIL): pergunta uma vez só, na primeira mensagem.
+  if (!lead.fonte) lead = saveLead(from, { fonte: await fonteDoTelefone(from) });
   lead = registrarTurno(from, 'user', textoOriginal);
 
   // O estado decide todo o resto — inclusive os casos em que a automação fica

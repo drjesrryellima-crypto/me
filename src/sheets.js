@@ -2,6 +2,7 @@ const { google } = require('googleapis');
 const { opcoesDeAuth, contaEmUso } = require('./google-credenciais');
 const { estagioCrm, ehRisco } = require('./estados');
 const { ehTeste } = require('./numeros-de-teste');
+const { gravarNoFunil } = require('./funil-escrita');
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB = process.env.GOOGLE_SHEET_TAB || 'Leads';
@@ -167,6 +168,9 @@ async function gravarLeadNaPlanilha(lead) {
     console.log(`[sheets] ${lead.phone} é número de teste — fora da planilha.`);
     return;
   }
+
+  // CRM oficial primeiro (aba FUNIL, onde o médico olha); a aba "Leads" é espelho técnico.
+  await gravarNoFunil(lead);
 
   try {
     await appendLeadRow(lead);
